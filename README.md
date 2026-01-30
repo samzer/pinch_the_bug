@@ -2,6 +2,8 @@
 
 A browser-based game that uses your webcam to track your hand movements. Point at bugs crawling across the screen and hold your finger on them to squash them!
 
+**[Play Now](https://bugpinch.netlify.app/)**
+
 ## How to Play
 
 1. Open `index.html` in a modern browser (Chrome, Firefox, or Edge recommended)
