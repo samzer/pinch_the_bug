@@ -515,6 +515,16 @@
                 <p>Hand not detected. Show your hand to continue!</p>
             </div>
         </div>
+
+        <!-- Mobile Not Supported Modal -->
+        <div class="modal hidden" id="mobileModal">
+            <div class="modal-content">
+                <h2>Desktop Only</h2>
+                <div style="font-size: 64px; margin: 20px 0;">🖥️</div>
+                <p style="margin-bottom: 15px;">Pinch the Bug requires a webcam and hand tracking, which works best on desktop computers.</p>
+                <p style="opacity: 0.7;">Please visit this page on a desktop or laptop computer with a webcam to play!</p>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -1689,8 +1699,30 @@
             }
         }
 
+        // Mobile detection
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            // Check for mobile user agents
+            const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+            // Also check for touch-only devices with small screens
+            const isSmallScreen = window.innerWidth <= 768;
+            const isTouchOnly = 'ontouchstart' in window && !window.matchMedia('(pointer: fine)').matches;
+
+            return mobileRegex.test(userAgent) || (isSmallScreen && isTouchOnly);
+        }
+
         // Initialize game when page loads
         window.addEventListener('load', () => {
+            if (isMobileDevice()) {
+                // Show mobile not supported modal, hide start modal
+                document.getElementById('startModal').classList.add('hidden');
+                document.getElementById('mobileModal').classList.remove('hidden');
+                return;
+            }
+
+            // Hide mobile modal, show start modal (default state)
+            document.getElementById('mobileModal').classList.add('hidden');
+
             initSupabase();
             new Game();
         });
