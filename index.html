@@ -296,6 +296,20 @@
             color: rgba(255, 255, 255, 0.5);
         }
 
+        .name-error {
+            color: #ef4444;
+            font-size: 14px;
+            margin: -10px 0 15px 0;
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .name-input.error {
+            border-color: #ef4444;
+        }
+
         .leaderboard-item {
             display: flex;
             justify-content: space-between;
@@ -460,6 +474,7 @@
                 <div class="final-score" id="finalScoreDisplay">0</div>
                 <p>Enter your name for the leaderboard:</p>
                 <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
+                <p id="nameError" class="name-error hidden"></p>
                 <button class="btn btn-primary" id="submitScoreBtn">Submit Score</button>
                 <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
             </div>
@@ -523,6 +538,49 @@
             } else {
                 console.warn('Supabase library not loaded');
             }
+        }
+
+        // ============================================
+        // Profanity Filter
+        // ============================================
+        const inappropriateWords = [
+            'fuck', 'shit', 'ass', 'bitch', 'damn', 'crap', 'piss', 'dick', 'cock',
+            'pussy', 'asshole', 'bastard', 'slut', 'whore', 'fag', 'faggot', 'nigger',
+            'nigga', 'cunt', 'twat', 'wanker', 'bollocks', 'arse', 'retard', 'gay',
+            'penis', 'vagina', 'sex', 'porn', 'nude', 'naked', 'xxx', 'anal', 'rape',
+            'kill', 'murder', 'nazi', 'hitler', 'terrorist', 'bomb'
+        ];
+
+        function containsInappropriateContent(name) {
+            // Normalize: lowercase and replace common letter substitutions
+            const normalized = name.toLowerCase()
+                .replace(/0/g, 'o')
+                .replace(/1/g, 'i')
+                .replace(/3/g, 'e')
+                .replace(/4/g, 'a')
+                .replace(/5/g, 's')
+                .replace(/7/g, 't')
+                .replace(/8/g, 'b')
+                .replace(/@/g, 'a')
+                .replace(/\$/g, 's')
+                .replace(/[^a-z]/g, ''); // Remove non-letters
+
+            // Check for inappropriate words
+            for (const word of inappropriateWords) {
+                if (normalized.includes(word)) {
+                    return true;
+                }
+            }
+
+            // Also check the original (with spaces removed) for exact matches
+            const originalClean = name.toLowerCase().replace(/\s+/g, '');
+            for (const word of inappropriateWords) {
+                if (originalClean.includes(word)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // ============================================
@@ -1211,6 +1269,8 @@
                 // Show name input modal for new high score
                 document.getElementById('finalScoreDisplay').textContent = this.score;
                 document.getElementById('playerNameInput').value = rememberedName;
+                document.getElementById('nameError').classList.add('hidden');
+                document.getElementById('playerNameInput').classList.remove('error');
                 this.showModal('nameModal');
 
                 // Focus the input
@@ -1227,10 +1287,38 @@
                 this.showModal('notHigherModal');
             }
 
+            showNameError(message) {
+                const errorEl = document.getElementById('nameError');
+                const inputEl = document.getElementById('playerNameInput');
+                errorEl.textContent = message;
+                errorEl.classList.remove('hidden');
+                inputEl.classList.add('error');
+
+                // Clear error when user starts typing
+                const clearError = () => {
+                    errorEl.classList.add('hidden');
+                    inputEl.classList.remove('error');
+                    inputEl.removeEventListener('input', clearError);
+                };
+                inputEl.addEventListener('input', clearError);
+            }
+
             async submitScore() {
                 const nameInput = document.getElementById('playerNameInput');
                 const playerName = nameInput.value.trim() || 'Anonymous';
                 const submitBtn = document.getElementById('submitScoreBtn');
+
+                // Check for inappropriate name
+                if (containsInappropriateContent(playerName)) {
+                    this.showNameError('Please choose an appropriate name');
+                    return;
+                }
+
+                // Check name length
+                if (playerName.length < 2) {
+                    this.showNameError('Name must be at least 2 characters');
+                    return;
+                }
 
                 // Remember the player name
                 localStorage.setItem('pinchTheBugPlayerName', playerName);
