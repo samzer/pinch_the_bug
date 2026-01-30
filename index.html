@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinch the Bug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #videoContainer {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            z-index: 10;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .stat-box {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        #score .stat-value {
+            color: #4ade80;
+        }
+
+        #timer .stat-value {
+            color: #f472b6;
+        }
+
+        #handStatus {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        #handStatus.detected {
+            background: rgba(74, 222, 128, 0.3);
+            border: 1px solid #4ade80;
+        }
+
+        #handStatus.lost {
+            background: rgba(239, 68, 68, 0.3);
+            border: 1px solid #ef4444;
+        }
+
+        .modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .instructions-list {
+            text-align: left;
+            margin: 20px 0;
+            padding-left: 20px;
+        }
+
+        .instructions-list li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            color: #1a1a2e;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .calibration-area {
+            margin: 30px 0;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            cursor: pointer;
+        }
+
+        .test-area {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .test-cursor {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #4ade80, #22d3ee);
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            display: none;
+        }
+
+        .final-score {
+            font-size: 64px;
+            font-weight: bold;
+            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .name-input:focus {
+            border-color: #4ade80;
+        }
+
+        .name-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .leaderboard-item.current-player {
+            background: rgba(74, 222, 128, 0.2);
+            border: 1px solid #4ade80;
+        }
+
+        .leaderboard-rank {
+            font-weight: bold;
+            color: #4ade80;
+            min-width: 30px;
+        }
+
+        .leaderboard-name {
+            flex: 1;
+            margin-left: 10px;
+        }
+
+        .leaderboard-score {
+            font-weight: bold;
+            color: #22d3ee;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .high-scores {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .high-scores h3 {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .high-score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .target-spawn {
+            animation: pop 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="videoContainer">
+            <video id="webcam" autoplay playsinline></video>
+        </div>
+
+        <div id="ui">
+            <div class="stat-box" id="score">
+                <div class="stat-label">Score</div>
+                <div class="stat-value">0</div>
+            </div>
+            <div class="stat-box" id="timer">
+                <div class="stat-label">Time</div>
+                <div class="stat-value">60</div>
+            </div>
+        </div>
+
+        <div id="handStatus">Waiting for camera...</div>
+
+        <!-- Start/Calibration Modal -->
+        <div class="modal" id="startModal">
+            <div class="modal-content">
+                <h2>Pinch the Bug</h2>
+                <p>Squash the bugs by pinching your fingers together!</p>
+
+                <div class="calibration-area">
+                    <div class="slider-container">
+                        <label>Tracking Smoothness: <span id="smoothnessValue">0.3</span></label>
+                        <input type="range" class="slider" id="smoothnessSlider" min="0.1" max="0.8" step="0.05" value="0.3">
+                    </div>
+
+                    <div class="test-area" id="testArea">
+                        <div class="test-cursor" id="testCursor"></div>
+                        <p style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.5;">
+                            Move your finger here to test
+                        </p>
+                    </div>
+                </div>
+
+                <div id="cameraError" class="error-message hidden">
+                    <strong>Camera Error</strong>
+                    <p id="errorText"></p>
+                </div>
+
+                <button class="btn btn-primary" id="startBtn" disabled>Start Game</button>
+                <button class="btn btn-secondary" id="viewLeaderboardBtn">View Leaderboard</button>
+            </div>
+        </div>
+
+        <!-- Leaderboard Modal (from menu) -->
+        <div class="modal hidden" id="leaderboardModal">
+            <div class="modal-content">
+                <h2>Leaderboard</h2>
+                <div class="high-scores">
+                    <h3>Top Players</h3>
+                    <div id="menuLeaderboardList"></div>
+                </div>
+                <button class="btn btn-primary" id="closeLeaderboardBtn">Back</button>
+            </div>
+        </div>
+
+        <!-- Instructions Modal -->
+        <div class="modal hidden" id="instructionsModal">
+            <div class="modal-content">
+                <h2>How to Play</h2>
+                <ul class="instructions-list">
+                    <li><strong>Aim</strong> your index finger at the crawling bugs</li>
+                    <li><strong>Squash</strong> by pinching your thumb and index finger together</li>
+                    <li>Bugs crawl around and bounce off walls - track them!</li>
+                    <li>Squash as many bugs as you can before time runs out!</li>
+                </ul>
+                <button class="btn btn-primary" id="playBtn">Play!</button>
+            </div>
+        </div>
+
+        <!-- Name Input Modal -->
+        <div class="modal hidden" id="nameModal">
+            <div class="modal-content">
+                <h2>New High Score!</h2>
+                <div class="final-score" id="finalScoreDisplay">0</div>
+                <p>Enter your name for the leaderboard:</p>
+                <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
+                <button class="btn btn-primary" id="submitScoreBtn">Submit Score</button>
+                <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
+            </div>
+        </div>
+
+        <!-- Not Higher Score Modal -->
+        <div class="modal hidden" id="notHigherModal">
+            <div class="modal-content">
+                <h2>Game Over!</h2>
+                <div class="final-score" id="notHigherScore">0</div>
+                <p style="margin-bottom: 10px;">Your high score: <strong id="existingHighScore">0</strong></p>
+                <p style="opacity: 0.7;">Beat your high score to update the leaderboard!</p>
+                <button class="btn btn-primary" id="tryAgainBtn">Try Again</button>
+                <button class="btn btn-secondary" id="viewLeaderboardBtn2">View Leaderboard</button>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div class="modal hidden" id="gameOverModal">
+            <div class="modal-content">
+                <h2>Leaderboard</h2>
+                <div class="final-score" id="finalScore">0</div>
+
+                <div class="high-scores" id="highScores">
+                    <h3>Top Players</h3>
+                    <div id="leaderboardList"></div>
+                </div>
+
+                <button class="btn btn-primary" id="restartBtn">Play Again</button>
+                <button class="btn btn-secondary" id="menuBtn">Main Menu</button>
+            </div>
+        </div>
+
+        <!-- Paused Overlay -->
+        <div class="modal hidden" id="pausedModal">
+            <div class="modal-content">
+                <h2>Paused</h2>
+                <p>Hand not detected. Show your hand to continue!</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // ============================================
+        // Supabase Setup
+        // ============================================
+        const SUPABASE_URL = 'https://iroodimcnvaklsutipqe.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_CMXSOy3YCvFwYDnrdpkesQ_rUwKgTB7';
+        let supabaseClient = null;
+
+        // Initialize Supabase when ready
+        function initSupabase() {
+            if (window.supabase && window.supabase.createClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('Supabase initialized');
+            } else {
+                console.warn('Supabase library not loaded');
+            }
+        }
+
+        // ============================================
+        // Coordinate Smoother
+        // ============================================
+        class CoordinateSmoother {
+            constructor(alpha = 0.3) {
+                this.alpha = alpha;
+                this.x = null;
+                this.y = null;
+            }
+
+            smooth(newX, newY) {
+                if (this.x === null) {
+                    this.x = newX;
+                    this.y = newY;
+                } else {
+                    this.x = this.alpha * newX + (1 - this.alpha) * this.x;
+                    this.y = this.alpha * newY + (1 - this.alpha) * this.y;
+                }
+                return { x: this.x, y: this.y };
+            }
+
+            reset() {
+                this.x = null;
+                this.y = null;
+            }
+
+            setAlpha(alpha) {
+                this.alpha = alpha;
+            }
+        }
+
+        // ============================================
+        // Bug Class
+        // ============================================
+        class Bug {
+            constructor(x, y, bugType, canvasWidth, canvasHeight) {
+                this.x = x;
+                this.y = y;
+                this.size = bugType.size;
+                this.color = bugType.color;
+                this.points = bugType.points;
+                this.typeName = bugType.name;
+                this.canvasWidth = canvasWidth;
+                this.canvasHeight = canvasHeight;
+
+                // Random direction
+                const speed = bugType.speed;
+                const angle = Math.random() * Math.PI * 2;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.angle = angle; // Bug faces direction of movement
+
+                this.spawnTime = Date.now();
+                this.scale = 0;
+                this.hit = false;
+                this.hitTime = 0;
+                this.legPhase = 0; // For leg animation
+                this.wiggle = 0; // Body wiggle
+            }
+
+            update(deltaTime, canvasWidth, canvasHeight) {
+                this.canvasWidth = canvasWidth;
+                this.canvasHeight = canvasHeight;
+
+                // Spawn animation
+                if (this.scale < 1) {
+                    this.scale = Math.min(1, this.scale + deltaTime * 0.005);
+                }
+
+                // Hit animation
+                if (this.hit) {
+                    this.hitTime += deltaTime;
+                    return this.hitTime < 500;
+                }
+
+                // Move
+                this.x += this.vx * deltaTime * 0.06;
+                this.y += this.vy * deltaTime * 0.06;
+
+                // Animate legs and wiggle
+                this.legPhase += deltaTime * 0.02;
+                this.wiggle = Math.sin(this.legPhase * 2) * 0.1;
+
+                // Update facing angle based on velocity
+                this.angle = Math.atan2(this.vy, this.vx);
+
+                // Bounce off walls
+                const radius = (this.size * this.scale) / 2;
+                if (this.x - radius < 0) {
+                    this.x = radius;
+                    this.vx *= -1;
+                } else if (this.x + radius > canvasWidth) {
+                    this.x = canvasWidth - radius;
+                    this.vx *= -1;
+                }
+                if (this.y - radius < 0) {
+                    this.y = radius;
+                    this.vy *= -1;
+                } else if (this.y + radius > canvasHeight) {
+                    this.y = canvasHeight - radius;
+                    this.vy *= -1;
+                }
+
+                return true;
+            }
+
+            draw(ctx) {
+                const s = this.size * this.scale;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle + Math.PI / 2 + this.wiggle); // Bug points in movement direction
+
+                if (this.hit) {
+                    // Squash animation
+                    const progress = this.hitTime / 500;
+                    const alpha = 1 - progress;
+                    const squash = 1 + progress * 0.5;
+
+                    ctx.scale(squash, 1 / squash);
+
+                    // Splat effect
+                    ctx.beginPath();
+                    ctx.arc(0, 0, s * 0.6 * squash, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color.replace('1)', `${alpha * 0.5})`);
+                    ctx.fill();
+
+                    // Bug body fading
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, s * 0.3, s * 0.4, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = this.color.replace('1)', `${alpha})`);
+                    ctx.fill();
+
+                    // Splatter particles
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const dist = progress * s * 1.5;
+                        ctx.beginPath();
+                        ctx.arc(
+                            Math.cos(angle) * dist,
+                            Math.sin(angle) * dist,
+                            s * 0.1 * (1 - progress),
+                            0, Math.PI * 2
+                        );
+                        ctx.fillStyle = this.color.replace('1)', `${alpha})`);
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                    return;
+                }
+
+                // Legs (3 pairs)
+                const legLength = s * 0.5;
+                const legWidth = s * 0.08;
+                ctx.strokeStyle = this.color.replace('1)', '0.8)');
+                ctx.lineWidth = legWidth;
+                ctx.lineCap = 'round';
+
+                for (let i = 0; i < 3; i++) {
+                    const yOffset = (i - 1) * s * 0.25;
+                    const legSwing = Math.sin(this.legPhase + i * 1.5) * 0.3;
+
+                    // Left leg
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.2, yOffset);
+                    ctx.quadraticCurveTo(
+                        -legLength * 0.7, yOffset + legSwing * s * 0.3,
+                        -legLength, yOffset + legSwing * s * 0.5
+                    );
+                    ctx.stroke();
+
+                    // Right leg
+                    ctx.beginPath();
+                    ctx.moveTo(s * 0.2, yOffset);
+                    ctx.quadraticCurveTo(
+                        legLength * 0.7, yOffset - legSwing * s * 0.3,
+                        legLength, yOffset - legSwing * s * 0.5
+                    );
+                    ctx.stroke();
+                }
+
+                // Body (abdomen)
+                ctx.beginPath();
+                ctx.ellipse(0, s * 0.15, s * 0.28, s * 0.35, 0, 0, Math.PI * 2);
+                const bodyGradient = ctx.createRadialGradient(0, s * 0.15, 0, 0, s * 0.15, s * 0.35);
+                bodyGradient.addColorStop(0, this.color);
+                bodyGradient.addColorStop(1, this.color.replace('1)', '0.6)'));
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Thorax
+                ctx.beginPath();
+                ctx.ellipse(0, -s * 0.15, s * 0.2, s * 0.18, 0, 0, Math.PI * 2);
+                ctx.fillStyle = this.color.replace('1)', '0.9)');
+                ctx.fill();
+                ctx.stroke();
+
+                // Head
+                ctx.beginPath();
+                ctx.ellipse(0, -s * 0.38, s * 0.15, s * 0.12, 0, 0, Math.PI * 2);
+                ctx.fillStyle = this.color.replace('1)', '0.85)');
+                ctx.fill();
+                ctx.stroke();
+
+                // Eyes
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(-s * 0.07, -s * 0.4, s * 0.06, 0, Math.PI * 2);
+                ctx.arc(s * 0.07, -s * 0.4, s * 0.06, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pupils
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(-s * 0.07, -s * 0.4, s * 0.03, 0, Math.PI * 2);
+                ctx.arc(s * 0.07, -s * 0.4, s * 0.03, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Antennae
+                ctx.strokeStyle = this.color.replace('1)', '0.7)');
+                ctx.lineWidth = s * 0.04;
+                ctx.lineCap = 'round';
+
+                const antennaSwing = Math.sin(this.legPhase * 3) * 0.2;
+                // Left antenna
+                ctx.beginPath();
+                ctx.moveTo(-s * 0.08, -s * 0.45);
+                ctx.quadraticCurveTo(-s * 0.2, -s * 0.6, -s * 0.15 + antennaSwing * s * 0.2, -s * 0.7);
+                ctx.stroke();
+
+                // Right antenna
+                ctx.beginPath();
+                ctx.moveTo(s * 0.08, -s * 0.45);
+                ctx.quadraticCurveTo(s * 0.2, -s * 0.6, s * 0.15 - antennaSwing * s * 0.2, -s * 0.7);
+                ctx.stroke();
+
+                ctx.restore();
+            }
+
+            checkHit(cursorX, cursorY) {
+                const radius = (this.size * this.scale) / 2;
+                const distance = Math.hypot(cursorX - this.x, cursorY - this.y);
+                return distance < radius;
+            }
+        }
+
+        // ============================================
+        // Game Class
+        // ============================================
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.video = document.getElementById('webcam');
+
+                // Game state
+                this.state = 'CALIBRATION'; // CALIBRATION, INSTRUCTIONS, PLAYING, PAUSED, GAME_OVER
+                this.score = 0;
+                this.timeRemaining = 60;
+                this.targets = [];
+                this.lastFrameTime = 0;
+                this.lastSpawnTime = 0;
+
+                // Game settings
+                this.settings = {
+                    spawnInterval: 1000,
+                    gameTime: 30,
+                    nearMissTolerance: 80
+                };
+
+                // Bug types with different characteristics
+                this.bugTypes = [
+                    { name: 'normal', size: 80, speed: 2, points: 10, weight: 40, color: 'rgba(74, 222, 128, 1)' },
+                    { name: 'fast', size: 60, speed: 4, points: 25, weight: 25, color: 'rgba(251, 191, 36, 1)' },
+                    { name: 'tiny', size: 45, speed: 3, points: 30, weight: 20, color: 'rgba(244, 114, 182, 1)' },
+                    { name: 'big', size: 100, speed: 1.5, points: 5, weight: 10, color: 'rgba(239, 68, 68, 1)' },
+                    { name: 'boss', size: 120, speed: 2.5, points: 50, weight: 5, color: 'rgba(167, 139, 250, 1)' }
+                ];
+
+                // Cursor state
+                this.cursorX = 0;
+                this.cursorY = 0;
+                this.cursorVisible = false;
+                this.smoother = new CoordinateSmoother(0.3);
+
+                // Pinch gesture detection
+                this.isShooting = false;
+                this.isPinching = false;
+                this.pinchDebounce = false;
+                this.pinchThreshold = 0.06;
+                this.muzzleFlashTime = 0;
+
+                // Hand tracking
+                this.hands = null;
+                this.camera = null;
+                this.handDetected = false;
+                this.handLostTime = 0;
+
+                this.init();
+            }
+
+            async init() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+
+                this.setupUI();
+                await this.initMediaPipe();
+                this.gameLoop(0);
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+
+            setupUI() {
+                // Smoothness slider
+                const slider = document.getElementById('smoothnessSlider');
+                const valueDisplay = document.getElementById('smoothnessValue');
+                slider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    valueDisplay.textContent = value.toFixed(2);
+                    this.smoother.setAlpha(value);
+                });
+
+                // Start button
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    this.showModal('instructionsModal');
+                });
+
+                // Play button
+                document.getElementById('playBtn').addEventListener('click', () => {
+                    this.startGame();
+                });
+
+                // Restart button
+                document.getElementById('restartBtn').addEventListener('click', () => {
+                    this.startGame();
+                });
+
+                // Menu button
+                document.getElementById('menuBtn').addEventListener('click', () => {
+                    this.hideModal('gameOverModal');
+                    this.showModal('startModal');
+                    this.state = 'CALIBRATION';
+                });
+
+                // View leaderboard from start screen
+                document.getElementById('viewLeaderboardBtn').addEventListener('click', () => {
+                    this.viewLeaderboardFromMenu();
+                });
+
+                // Close leaderboard modal
+                document.getElementById('closeLeaderboardBtn').addEventListener('click', () => {
+                    this.hideModal('leaderboardModal');
+                    this.showModal('startModal');
+                });
+
+                // Submit score button
+                document.getElementById('submitScoreBtn').addEventListener('click', () => {
+                    this.submitScore();
+                });
+
+                // Skip score button
+                document.getElementById('skipScoreBtn').addEventListener('click', () => {
+                    this.hideModal('nameModal');
+                    this.showLeaderboard();
+                });
+
+                // Enter key to submit score
+                document.getElementById('playerNameInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.submitScore();
+                    }
+                });
+
+                // Try again button (from not higher score modal)
+                document.getElementById('tryAgainBtn').addEventListener('click', () => {
+                    this.hideModal('notHigherModal');
+                    this.startGame();
+                });
+
+                // View leaderboard from not higher score modal
+                document.getElementById('viewLeaderboardBtn2').addEventListener('click', () => {
+                    this.hideModal('notHigherModal');
+                    this.showLeaderboard();
+                });
+            }
+
+            async initMediaPipe() {
+                // Step 1: Get camera access first
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'user' }
+                    });
+
+                    this.video.srcObject = stream;
+                    await this.video.play();
+                    this.updateHandStatus('Camera ready, loading hand tracking...', 'detected');
+
+                } catch (error) {
+                    console.error('Camera error:', error);
+                    document.getElementById('cameraError').classList.remove('hidden');
+                    document.getElementById('errorText').textContent =
+                        error.name === 'NotAllowedError'
+                            ? 'Camera permission denied. Please allow camera access and refresh.'
+                            : `Failed to access camera: ${error.message}`;
+                    return;
+                }
+
+                // Step 2: Initialize MediaPipe Hands
+                try {
+                    // Check if MediaPipe loaded
+                    if (typeof Hands === 'undefined') {
+                        throw new Error('MediaPipe Hands library failed to load. Check your internet connection.');
+                    }
+
+                    this.hands = new Hands({
+                        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                    });
+
+                    this.hands.setOptions({
+                        maxNumHands: 1,
+                        modelComplexity: 1,
+                        minDetectionConfidence: 0.7,
+                        minTrackingConfidence: 0.5
+                    });
+
+                    this.hands.onResults((results) => this.onHandResults(results));
+
+                    // Start manual frame processing loop (model initializes on first send)
+                    this.mediaPipeReady = false;
+                    this.processVideoFrame();
+
+                    document.getElementById('startBtn').disabled = false;
+                    this.updateHandStatus('Move your hand in view', 'detected');
+
+                } catch (error) {
+                    console.error('MediaPipe error:', error);
+                    document.getElementById('cameraError').classList.remove('hidden');
+                    const errorMsg = error.message || error.toString() || 'Unknown error';
+                    document.getElementById('errorText').textContent =
+                        `Failed to initialize hand tracking: ${errorMsg}. Try refreshing the page.`;
+                }
+            }
+
+            async processVideoFrame() {
+                if (this.video.readyState >= 2) {
+                    try {
+                        await this.hands.send({ image: this.video });
+                        if (!this.mediaPipeReady) {
+                            this.mediaPipeReady = true;
+                            console.log('MediaPipe Hands initialized successfully');
+                        }
+                    } catch (e) {
+                        if (!this.mediaPipeReady) {
+                            console.error('MediaPipe initialization error:', e);
+                            document.getElementById('cameraError').classList.remove('hidden');
+                            document.getElementById('errorText').textContent =
+                                `Hand tracking failed to load. Please refresh the page.`;
+                            return; // Stop the loop on init error
+                        }
+                    }
+                }
+                requestAnimationFrame(() => this.processVideoFrame());
+            }
+
+            onHandResults(results) {
+                if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                    const landmarks = results.multiHandLandmarks[0];
+
+                    // Get index finger tip (landmark 8)
+                    const indexTip = landmarks[8];
+
+                    // Convert to canvas coordinates (with horizontal flip for mirror mode)
+                    const rawX = (1 - indexTip.x) * this.canvas.width;
+                    const rawY = indexTip.y * this.canvas.height;
+
+                    // Smooth coordinates
+                    const smoothed = this.smoother.smooth(rawX, rawY);
+                    this.cursorX = smoothed.x;
+                    this.cursorY = smoothed.y;
+                    this.cursorVisible = true;
+
+                    // Detect pinch gesture (thumb tip to index tip)
+                    const thumbTip = landmarks[4];
+                    const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+                    const wasPinching = this.isPinching;
+                    this.isPinching = distance < this.pinchThreshold;
+
+                    // Pinch triggered (rising edge)
+                    if (this.isPinching && !wasPinching && !this.pinchDebounce) {
+                        this.onShoot();
+                        this.pinchDebounce = true;
+                        setTimeout(() => { this.pinchDebounce = false; }, 300);
+                    }
+
+                    // Hand detected
+                    if (!this.handDetected) {
+                        this.handDetected = true;
+                        this.updateHandStatus('Hand detected', 'detected');
+
+                        if (this.state === 'PAUSED') {
+                            this.state = 'PLAYING';
+                            this.hideModal('pausedModal');
+                        }
+                    }
+
+                    // Update test cursor in calibration
+                    if (this.state === 'CALIBRATION') {
+                        this.updateTestCursor(indexTip.x, indexTip.y);
+                    }
+
+                } else {
+                    // Hand lost
+                    if (this.handDetected) {
+                        this.handDetected = false;
+                        this.cursorVisible = false;
+                        this.smoother.reset();
+                        this.isPinching = false;
+                        this.updateHandStatus('Hand lost - show your hand', 'lost');
+
+                        if (this.state === 'PLAYING') {
+                            this.handLostTime = Date.now();
+                            setTimeout(() => {
+                                if (!this.handDetected && this.state === 'PLAYING') {
+                                    this.state = 'PAUSED';
+                                    this.showModal('pausedModal');
+                                }
+                            }, 1000);
+                        }
+                    }
+
+                    // Hide test cursor
+                    document.getElementById('testCursor').style.display = 'none';
+                }
+            }
+
+            updateTestCursor(normX, normY) {
+                const testArea = document.getElementById('testArea');
+                const testCursor = document.getElementById('testCursor');
+                const rect = testArea.getBoundingClientRect();
+
+                // Apply same mirroring as game
+                const x = (1 - normX) * rect.width;
+                const y = normY * rect.height;
+
+                testCursor.style.display = 'block';
+                testCursor.style.left = `${x}px`;
+                testCursor.style.top = `${y}px`;
+            }
+
+            updateHandStatus(text, className) {
+                const status = document.getElementById('handStatus');
+                status.textContent = text;
+                status.className = className;
+            }
+
+            onShoot() {
+                if (this.state !== 'PLAYING') return;
+
+                this.isShooting = true;
+                this.muzzleFlashTime = Date.now();
+
+                const settings = this.settings;
+                const nearMissTolerance = settings.nearMissTolerance || 80;
+
+                // First check for direct hits
+                for (const target of this.targets) {
+                    if (!target.hit && target.checkHit(this.cursorX, this.cursorY)) {
+                        this.hitTarget(target);
+                        setTimeout(() => { this.isShooting = false; }, 150);
+                        return;
+                    }
+                }
+
+                // No direct hit - check for nearby targets (near miss tolerance)
+                let closestTarget = null;
+                let closestDistance = Infinity;
+
+                for (const target of this.targets) {
+                    if (!target.hit) {
+                        const distance = Math.hypot(this.cursorX - target.x, this.cursorY - target.y);
+                        if (distance < closestDistance && distance < nearMissTolerance) {
+                            closestDistance = distance;
+                            closestTarget = target;
+                        }
+                    }
+                }
+
+                if (closestTarget) {
+                    this.hitTarget(closestTarget);
+                }
+
+                // Reset shooting state after animation
+                setTimeout(() => { this.isShooting = false; }, 150);
+            }
+
+            hitTarget(target) {
+                target.hit = true;
+                this.score += target.points;
+                this.updateScoreDisplay();
+                this.showPointsPopup(target.x, target.y, target.points);
+            }
+
+            showPointsPopup(x, y, points) {
+                // Create floating points text
+                const popup = {
+                    x: x,
+                    y: y,
+                    points: points,
+                    startTime: Date.now(),
+                    duration: 800
+                };
+                if (!this.pointsPopups) this.pointsPopups = [];
+                this.pointsPopups.push(popup);
+            }
+
+            startGame() {
+                this.hideAllModals();
+                this.state = 'PLAYING';
+                this.score = 0;
+                this.targets = [];
+                this.pointsPopups = [];
+                this.timeRemaining = this.settings.gameTime;
+                this.lastSpawnTime = Date.now();
+                this.isPinching = false;
+                this.isShooting = false;
+                this.updateScoreDisplay();
+                this.updateTimerDisplay();
+
+                // Spawn initial target
+                this.spawnTarget();
+
+                // Start timer
+                this.timerInterval = setInterval(() => {
+                    if (this.state === 'PLAYING') {
+                        this.timeRemaining--;
+                        this.updateTimerDisplay();
+
+                        if (this.timeRemaining <= 0) {
+                            this.endGame();
+                        }
+                    }
+                }, 1000);
+            }
+
+            async endGame() {
+                this.state = 'GAME_OVER';
+                clearInterval(this.timerInterval);
+                this.finalScore = this.score;
+
+                // Check if returning player has a higher existing score
+                const rememberedName = localStorage.getItem('pinchTheBugPlayerName') || '';
+
+                if (rememberedName && supabaseClient) {
+                    try {
+                        const { data: existingPlayers } = await supabaseClient
+                            .from('leaderboard')
+                            .select('score')
+                            .eq('player_name', rememberedName)
+                            .order('score', { ascending: false })
+                            .limit(1);
+
+                        if (existingPlayers && existingPlayers.length > 0) {
+                            const existingHighScore = existingPlayers[0].score;
+
+                            if (this.finalScore <= existingHighScore) {
+                                // Score not higher - skip to leaderboard
+                                this.currentPlayerName = rememberedName;
+                                this.showNotHigherScoreModal(existingHighScore);
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error checking existing score:', error);
+                    }
+                }
+
+                // Show name input modal for new high score
+                document.getElementById('finalScoreDisplay').textContent = this.score;
+                document.getElementById('playerNameInput').value = rememberedName;
+                this.showModal('nameModal');
+
+                // Focus the input
+                setTimeout(() => {
+                    const input = document.getElementById('playerNameInput');
+                    input.focus();
+                    input.select();
+                }, 100);
+            }
+
+            showNotHigherScoreModal(existingHighScore) {
+                document.getElementById('notHigherScore').textContent = this.finalScore;
+                document.getElementById('existingHighScore').textContent = existingHighScore;
+                this.showModal('notHigherModal');
+            }
+
+            async submitScore() {
+                const nameInput = document.getElementById('playerNameInput');
+                const playerName = nameInput.value.trim() || 'Anonymous';
+                const submitBtn = document.getElementById('submitScoreBtn');
+
+                // Remember the player name
+                localStorage.setItem('pinchTheBugPlayerName', playerName);
+
+                // Check if Supabase is available
+                if (!supabaseClient) {
+                    console.error('Supabase not initialized');
+                    this.currentPlayerName = playerName;
+                    this.hideModal('nameModal');
+                    this.showLeaderboard();
+                    return;
+                }
+
+                // Disable button while submitting
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+
+                try {
+                    // Check if player already exists (get their highest score entry)
+                    const { data: existingPlayers, error: fetchError } = await supabaseClient
+                        .from('leaderboard')
+                        .select('*')
+                        .eq('player_name', playerName)
+                        .order('score', { ascending: false })
+                        .limit(1);
+
+                    if (fetchError) {
+                        console.error('Error fetching player:', fetchError);
+                        throw fetchError;
+                    }
+
+                    const existingPlayer = existingPlayers && existingPlayers.length > 0 ? existingPlayers[0] : null;
+                    console.log('Existing player:', existingPlayer, 'New score:', this.finalScore);
+
+                    if (existingPlayer) {
+                        // Player exists - update only if new score is higher
+                        if (this.finalScore > existingPlayer.score) {
+                            console.log('New high score! Deleting old entry and inserting new one');
+
+                            // Delete old entry
+                            const { error: deleteError } = await supabaseClient
+                                .from('leaderboard')
+                                .delete()
+                                .eq('id', existingPlayer.id);
+
+                            if (deleteError) {
+                                console.error('Delete error:', deleteError);
+                                // Continue anyway, will insert new entry
+                            }
+
+                            // Insert new entry with higher score
+                            const { data: insertData, error: insertError } = await supabaseClient
+                                .from('leaderboard')
+                                .insert([
+                                    { player_name: playerName, score: this.finalScore }
+                                ])
+                                .select();
+
+                            if (insertError) {
+                                console.error('Insert error:', insertError);
+                                throw insertError;
+                            }
+                            console.log('New high score saved:', insertData);
+                        } else {
+                            console.log('Score not higher than existing:', existingPlayer.score);
+                        }
+                    } else {
+                        // New player - insert new row
+                        console.log('Inserting new player:', playerName);
+                        const { data: insertData, error: insertError } = await supabaseClient
+                            .from('leaderboard')
+                            .insert([
+                                { player_name: playerName, score: this.finalScore }
+                            ])
+                            .select();
+
+                        if (insertError) {
+                            console.error('Insert error:', insertError);
+                            throw insertError;
+                        }
+                        console.log('Insert result:', insertData);
+                    }
+
+                    this.currentPlayerName = playerName;
+                    this.hideModal('nameModal');
+                    this.showLeaderboard();
+
+                } catch (error) {
+                    console.error('Error saving score:', error);
+                    alert('Failed to save score. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Score';
+                }
+            }
+
+            async showLeaderboard() {
+                document.getElementById('finalScore').textContent = this.finalScore;
+                const listContainer = document.getElementById('leaderboardList');
+                this.showModal('gameOverModal');
+
+                // Check if Supabase is available
+                if (!supabaseClient) {
+                    listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">Leaderboard unavailable</p>';
+                    return;
+                }
+
+                listContainer.innerHTML = '<div class="loading-spinner">Loading leaderboard...</div>';
+
+                try {
+                    // Fetch top 10 scores from Supabase
+                    const { data, error } = await supabaseClient
+                        .from('leaderboard')
+                        .select('*')
+                        .order('score', { ascending: false })
+                        .limit(10);
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No scores yet. Be the first!</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach((entry, i) => {
+                        const isCurrentPlayer = this.currentPlayerName &&
+                            entry.player_name === this.currentPlayerName &&
+                            entry.score === this.finalScore;
+                        html += `<div class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
+                            <span class="leaderboard-rank">#${i + 1}</span>
+                            <span class="leaderboard-name">${this.escapeHtml(entry.player_name)}</span>
+                            <span class="leaderboard-score">${entry.score}</span>
+                        </div>`;
+                    });
+                    listContainer.innerHTML = html;
+
+                } catch (error) {
+                    console.error('Error fetching leaderboard:', error);
+                    listContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Failed to load leaderboard</p>';
+                }
+
+                this.currentPlayerName = null;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            async viewLeaderboardFromMenu() {
+                this.hideModal('startModal');
+                const listContainer = document.getElementById('menuLeaderboardList');
+                listContainer.innerHTML = '<div class="loading-spinner">Loading leaderboard...</div>';
+                this.showModal('leaderboardModal');
+
+                if (!supabaseClient) {
+                    listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">Leaderboard unavailable</p>';
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('leaderboard')
+                        .select('*')
+                        .order('score', { ascending: false })
+                        .limit(10);
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No scores yet. Be the first!</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach((entry, i) => {
+                        html += `<div class="leaderboard-item">
+                            <span class="leaderboard-rank">#${i + 1}</span>
+                            <span class="leaderboard-name">${this.escapeHtml(entry.player_name)}</span>
+                            <span class="leaderboard-score">${entry.score}</span>
+                        </div>`;
+                    });
+                    listContainer.innerHTML = html;
+
+                } catch (error) {
+                    console.error('Error fetching leaderboard:', error);
+                    listContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Failed to load leaderboard</p>';
+                }
+            }
+
+            getRandomBugType() {
+                // Weighted random selection
+                const totalWeight = this.bugTypes.reduce((sum, type) => sum + type.weight, 0);
+                let random = Math.random() * totalWeight;
+
+                for (const bugType of this.bugTypes) {
+                    random -= bugType.weight;
+                    if (random <= 0) {
+                        return bugType;
+                    }
+                }
+                return this.bugTypes[0]; // Fallback
+            }
+
+            spawnTarget() {
+                const bugType = this.getRandomBugType();
+                const padding = bugType.size + 20;
+
+                // Find valid position (not overlapping existing targets)
+                let x, y, valid;
+                let attempts = 0;
+
+                do {
+                    x = padding + Math.random() * (this.canvas.width - padding * 2);
+                    y = padding + Math.random() * (this.canvas.height - padding * 2);
+
+                    valid = true;
+                    for (const target of this.targets) {
+                        const dist = Math.hypot(x - target.x, y - target.y);
+                        if (dist < (bugType.size + target.size)) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    attempts++;
+                } while (!valid && attempts < 20);
+
+                this.targets.push(new Bug(
+                    x, y,
+                    bugType,
+                    this.canvas.width,
+                    this.canvas.height
+                ));
+            }
+
+            updateScoreDisplay() {
+                document.querySelector('#score .stat-value').textContent = this.score;
+            }
+
+            updateTimerDisplay() {
+                document.querySelector('#timer .stat-value').textContent = this.timeRemaining;
+            }
+
+            showModal(id) {
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            hideModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            }
+
+            hideAllModals() {
+                document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+            }
+
+            gameLoop(timestamp) {
+                const deltaTime = timestamp - this.lastFrameTime;
+                this.lastFrameTime = timestamp;
+
+                this.update(deltaTime);
+                this.render();
+
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+
+            update(deltaTime) {
+                if (this.state !== 'PLAYING') return;
+
+                const settings = this.settings;
+
+                // Spawn new targets
+                if (Date.now() - this.lastSpawnTime > settings.spawnInterval) {
+                    if (this.targets.filter(t => !t.hit).length < 6) {
+                        this.spawnTarget();
+                    }
+                    this.lastSpawnTime = Date.now();
+                }
+
+                // Update targets (bugs)
+                this.targets = this.targets.filter(target =>
+                    target.update(deltaTime, this.canvas.width, this.canvas.height)
+                );
+            }
+
+            render() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (this.state === 'PLAYING' || this.state === 'PAUSED') {
+                    // Draw targets
+                    for (const target of this.targets) {
+                        target.draw(this.ctx);
+                    }
+
+                    // Draw finger cursor
+                    if (this.cursorVisible) {
+                        const isSquashing = this.isPinching || (this.isShooting && (Date.now() - this.muzzleFlashTime < 150));
+                        const cursorSize = isSquashing ? 35 : 25;
+                        const cursorColor = isSquashing ? '#ef4444' : '#4ade80';
+
+                        // Squash effect ring
+                        if (isSquashing) {
+                            const squashGradient = this.ctx.createRadialGradient(
+                                this.cursorX, this.cursorY, 0,
+                                this.cursorX, this.cursorY, 50
+                            );
+                            squashGradient.addColorStop(0, 'rgba(239, 68, 68, 0.6)');
+                            squashGradient.addColorStop(0.5, 'rgba(239, 68, 68, 0.2)');
+                            squashGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                            this.ctx.beginPath();
+                            this.ctx.arc(this.cursorX, this.cursorY, 50, 0, Math.PI * 2);
+                            this.ctx.fillStyle = squashGradient;
+                            this.ctx.fill();
+                        }
+
+                        // Finger circle
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.cursorX, this.cursorY, cursorSize, 0, Math.PI * 2);
+                        const fingerGradient = this.ctx.createRadialGradient(
+                            this.cursorX - cursorSize * 0.3, this.cursorY - cursorSize * 0.3, 0,
+                            this.cursorX, this.cursorY, cursorSize
+                        );
+                        fingerGradient.addColorStop(0, isSquashing ? '#fca5a5' : '#86efac');
+                        fingerGradient.addColorStop(1, cursorColor);
+                        this.ctx.fillStyle = fingerGradient;
+                        this.ctx.fill();
+
+                        // Border
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.stroke();
+
+                        // Highlight
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.cursorX - cursorSize * 0.25, this.cursorY - cursorSize * 0.25, cursorSize * 0.3, 0, Math.PI * 2);
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                        this.ctx.fill();
+                    }
+
+                    // Draw points popups
+                    if (this.pointsPopups) {
+                        const now = Date.now();
+                        this.pointsPopups = this.pointsPopups.filter(popup => {
+                            const elapsed = now - popup.startTime;
+                            if (elapsed >= popup.duration) return false;
+
+                            const progress = elapsed / popup.duration;
+                            const y = popup.y - progress * 50;
+                            const alpha = 1 - progress;
+                            const scale = 1 + progress * 0.5;
+
+                            this.ctx.save();
+                            this.ctx.font = `bold ${Math.round(24 * scale)}px 'Segoe UI', sans-serif`;
+                            this.ctx.textAlign = 'center';
+                            this.ctx.fillStyle = `rgba(74, 222, 128, ${alpha})`;
+                            this.ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.5})`;
+                            this.ctx.lineWidth = 3;
+                            this.ctx.strokeText(`+${popup.points}`, popup.x, y);
+                            this.ctx.fillText(`+${popup.points}`, popup.x, y);
+                            this.ctx.restore();
+
+                            return true;
+                        });
+                    }
+                }
+            }
+        }
+
+        // Initialize game when page loads
+        window.addEventListener('load', () => {
+            initSupabase();
+            new Game();
+        });
+    </script>
+</body>
+</html>
