@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #1B8B6A;
             min-height: 100vh;
             overflow: hidden;
             color: white;
@@ -546,7 +546,7 @@
         <div class="modal" id="startModal">
             <div class="modal-content">
                 <h2>Pinch the Bug</h2>
-                <p>Squash the bugs by pinching your fingers together!</p>
+                <p>Use your fly swatter to squash the bugs!</p>
 
                 <div class="calibration-area">
                     <div class="slider-container">
@@ -594,9 +594,9 @@
             <div class="modal-content">
                 <h2>How to Play</h2>
                 <ul class="instructions-list">
-                    <li><strong>Aim</strong> your index finger at the crawling bugs</li>
-                    <li><strong>Squash</strong> by pinching your thumb and index finger together</li>
-                    <li>Bugs crawl around and bounce off walls - track them!</li>
+                    <li><strong>Point</strong> your index finger to control the fly swatter</li>
+                    <li><strong>Hover</strong> over a bug to charge up the swatter</li>
+                    <li><strong>Hold</strong> on the bug until the swatter squashes it!</li>
                     <li>Squash as many bugs as you can before time runs out!</li>
                 </ul>
                 <button class="btn btn-primary" id="playBtn">Play!</button>
@@ -800,6 +800,8 @@
                 this.hitTime = 0;
                 this.legPhase = 0; // For leg animation
                 this.wiggle = 0; // Body wiggle
+                this.dwellThreshold = bugType.dwellThreshold; // Time to squash
+                this.dwellTime = 0; // Current dwell time
             }
 
             update(deltaTime, canvasWidth, canvasHeight) {
@@ -1016,13 +1018,13 @@
                     nearMissTolerance: 80
                 };
 
-                // Bug types with different characteristics
+                // Bug types with different characteristics (dwellThreshold = time to squash in ms)
                 this.bugTypes = [
-                    { name: 'normal', size: 80, speed: 2, points: 10, weight: 40, color: 'rgba(74, 222, 128, 1)' },
-                    { name: 'fast', size: 60, speed: 4, points: 25, weight: 25, color: 'rgba(251, 191, 36, 1)' },
-                    { name: 'tiny', size: 45, speed: 3, points: 30, weight: 20, color: 'rgba(244, 114, 182, 1)' },
-                    { name: 'big', size: 100, speed: 1.5, points: 5, weight: 10, color: 'rgba(239, 68, 68, 1)' },
-                    { name: 'boss', size: 120, speed: 2.5, points: 50, weight: 5, color: 'rgba(167, 139, 250, 1)' }
+                    { name: 'normal', size: 80, speed: 2, points: 10, weight: 40, color: 'rgba(74, 222, 128, 1)', dwellThreshold: 100 },
+                    { name: 'fast', size: 60, speed: 4, points: 25, weight: 25, color: 'rgba(251, 191, 36, 1)', dwellThreshold: 100 },
+                    { name: 'tiny', size: 45, speed: 3, points: 30, weight: 20, color: 'rgba(244, 114, 182, 1)', dwellThreshold: 100 },
+                    { name: 'big', size: 100, speed: 1.5, points: 5, weight: 10, color: 'rgba(239, 68, 68, 1)', dwellThreshold: 100 },
+                    { name: 'boss', size: 120, speed: 2.5, points: 50, weight: 5, color: 'rgba(167, 139, 250, 1)', dwellThreshold: 100 }
                 ];
 
                 // Cursor state
@@ -1031,12 +1033,12 @@
                 this.cursorVisible = false;
                 this.smoother = new CoordinateSmoother(0.3);
 
-                // Pinch gesture detection
-                this.isShooting = false;
-                this.isPinching = false;
-                this.pinchDebounce = false;
-                this.pinchThreshold = 0.06;
-                this.muzzleFlashTime = 0;
+                // Swatter state (dwell to squash)
+                this.currentTarget = null;
+                this.swatterAngle = 0; // Swatter tilt angle
+                this.isSquashing = false;
+                this.squashStartTime = 0;
+                this.squashDuration = 200; // Animation duration in ms
 
                 // Hand tracking
                 this.hands = null;
@@ -1256,19 +1258,6 @@
                     this.cursorY = smoothed.y;
                     this.cursorVisible = true;
 
-                    // Detect pinch gesture (thumb tip to index tip)
-                    const thumbTip = landmarks[4];
-                    const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
-                    const wasPinching = this.isPinching;
-                    this.isPinching = distance < this.pinchThreshold;
-
-                    // Pinch triggered (rising edge)
-                    if (this.isPinching && !wasPinching && !this.pinchDebounce) {
-                        this.onShoot();
-                        this.pinchDebounce = true;
-                        setTimeout(() => { this.pinchDebounce = false; }, 300);
-                    }
-
                     // Hand detected
                     if (!this.handDetected) {
                         this.handDetected = true;
@@ -1291,7 +1280,11 @@
                         this.handDetected = false;
                         this.cursorVisible = false;
                         this.smoother.reset();
-                        this.isPinching = false;
+                        // Reset swatter state
+                        if (this.currentTarget) {
+                            this.currentTarget.dwellTime = 0;
+                            this.currentTarget = null;
+                        }
                         this.updateHandStatus('Hand lost - show your hand', 'lost');
 
                         if (this.state === 'PLAYING') {
@@ -1330,46 +1323,6 @@
                 status.className = className;
             }
 
-            onShoot() {
-                if (this.state !== 'PLAYING') return;
-
-                this.isShooting = true;
-                this.muzzleFlashTime = Date.now();
-
-                const settings = this.settings;
-                const nearMissTolerance = settings.nearMissTolerance || 80;
-
-                // First check for direct hits
-                for (const target of this.targets) {
-                    if (!target.hit && target.checkHit(this.cursorX, this.cursorY)) {
-                        this.hitTarget(target);
-                        setTimeout(() => { this.isShooting = false; }, 150);
-                        return;
-                    }
-                }
-
-                // No direct hit - check for nearby targets (near miss tolerance)
-                let closestTarget = null;
-                let closestDistance = Infinity;
-
-                for (const target of this.targets) {
-                    if (!target.hit) {
-                        const distance = Math.hypot(this.cursorX - target.x, this.cursorY - target.y);
-                        if (distance < closestDistance && distance < nearMissTolerance) {
-                            closestDistance = distance;
-                            closestTarget = target;
-                        }
-                    }
-                }
-
-                if (closestTarget) {
-                    this.hitTarget(closestTarget);
-                }
-
-                // Reset shooting state after animation
-                setTimeout(() => { this.isShooting = false; }, 150);
-            }
-
             hitTarget(target) {
                 target.hit = true;
                 this.score += target.points;
@@ -1398,8 +1351,9 @@
                 this.pointsPopups = [];
                 this.timeRemaining = this.settings.gameTime;
                 this.lastSpawnTime = Date.now();
-                this.isPinching = false;
-                this.isShooting = false;
+                this.currentTarget = null;
+                this.isSquashing = false;
+                this.squashStartTime = 0;
                 this.updateScoreDisplay();
                 this.updateTimerDisplay();
 
@@ -1842,15 +1796,158 @@
                     this.lastSpawnTime = Date.now();
                 }
 
+                // Dwell tracking - point swatter at bug to squash
+                if (this.cursorVisible && !this.isSquashing) {
+                    let hoveredBug = null;
+
+                    // Find bug under swatter
+                    for (const target of this.targets) {
+                        if (!target.hit && target.checkHit(this.cursorX, this.cursorY)) {
+                            hoveredBug = target;
+                            break;
+                        }
+                    }
+
+                    if (hoveredBug) {
+                        // Accumulate dwell time
+                        if (this.currentTarget === hoveredBug) {
+                            hoveredBug.dwellTime += deltaTime;
+
+                            // Squash if dwell threshold reached
+                            if (hoveredBug.dwellTime >= hoveredBug.dwellThreshold) {
+                                this.isSquashing = true;
+                                this.squashStartTime = Date.now();
+                                this.hitTarget(hoveredBug);
+                                this.currentTarget = null;
+                            }
+                        } else {
+                            // New target - reset previous target's dwell time
+                            if (this.currentTarget) {
+                                this.currentTarget.dwellTime = 0;
+                            }
+                            this.currentTarget = hoveredBug;
+                            hoveredBug.dwellTime = deltaTime;
+                        }
+                    } else {
+                        // Not hovering any bug
+                        if (this.currentTarget) {
+                            this.currentTarget.dwellTime = 0;
+                            this.currentTarget = null;
+                        }
+                    }
+                } else if (!this.cursorVisible) {
+                    // Cursor not visible - reset dwell
+                    if (this.currentTarget) {
+                        this.currentTarget.dwellTime = 0;
+                        this.currentTarget = null;
+                    }
+                }
+
+                // Update squash animation
+                if (this.isSquashing) {
+                    const elapsed = Date.now() - this.squashStartTime;
+                    if (elapsed >= this.squashDuration) {
+                        this.isSquashing = false;
+                    }
+                }
+
                 // Update targets (bugs)
                 this.targets = this.targets.filter(target =>
                     target.update(deltaTime, this.canvas.width, this.canvas.height)
                 );
             }
 
+            drawCuttingMatBackground() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+
+                // Main green background
+                ctx.fillStyle = '#1B8B6A';
+                ctx.fillRect(0, 0, w, h);
+
+                // Outer border (darker edge)
+                const borderWidth = 25;
+                ctx.strokeStyle = '#147256';
+                ctx.lineWidth = borderWidth * 2;
+                ctx.strokeRect(0, 0, w, h);
+
+                // Inner border line
+                ctx.strokeStyle = '#2BA37E';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(borderWidth, borderWidth, w - borderWidth * 2, h - borderWidth * 2);
+
+                // Grid settings
+                const gridSize = 30; // Size of each grid cell
+                const smallGridSize = gridSize / 5; // Smaller subdivisions
+
+                // Draw small grid lines (lighter)
+                ctx.strokeStyle = 'rgba(43, 163, 126, 0.3)';
+                ctx.lineWidth = 0.5;
+
+                // Vertical small lines
+                for (let x = borderWidth; x < w - borderWidth; x += smallGridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, borderWidth);
+                    ctx.lineTo(x, h - borderWidth);
+                    ctx.stroke();
+                }
+
+                // Horizontal small lines
+                for (let y = borderWidth; y < h - borderWidth; y += smallGridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(borderWidth, y);
+                    ctx.lineTo(w - borderWidth, y);
+                    ctx.stroke();
+                }
+
+                // Draw main grid lines (more visible)
+                ctx.strokeStyle = 'rgba(43, 163, 126, 0.6)';
+                ctx.lineWidth = 1;
+
+                // Vertical main lines
+                for (let x = borderWidth; x < w - borderWidth; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, borderWidth);
+                    ctx.lineTo(x, h - borderWidth);
+                    ctx.stroke();
+                }
+
+                // Horizontal main lines
+                for (let y = borderWidth; y < h - borderWidth; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(borderWidth, y);
+                    ctx.lineTo(w - borderWidth, y);
+                    ctx.stroke();
+                }
+
+                // Draw thicker lines every 5 cells (like cm markings)
+                ctx.strokeStyle = 'rgba(43, 163, 126, 0.8)';
+                ctx.lineWidth = 1.5;
+
+                // Vertical thick lines
+                for (let x = borderWidth; x < w - borderWidth; x += gridSize * 5) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, borderWidth);
+                    ctx.lineTo(x, h - borderWidth);
+                    ctx.stroke();
+                }
+
+                // Horizontal thick lines
+                for (let y = borderWidth; y < h - borderWidth; y += gridSize * 5) {
+                    ctx.beginPath();
+                    ctx.moveTo(borderWidth, y);
+                    ctx.lineTo(w - borderWidth, y);
+                    ctx.stroke();
+                }
+            }
+
             render() {
                 // Clear canvas
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw cutting mat background
+                this.drawCuttingMatBackground();
 
                 if (this.state === 'PLAYING' || this.state === 'PAUSED') {
                     // Draw targets
@@ -1858,49 +1955,126 @@
                         target.draw(this.ctx);
                     }
 
-                    // Draw finger cursor
+                    // Draw fly swatter cursor
                     if (this.cursorVisible) {
-                        const isSquashing = this.isPinching || (this.isShooting && (Date.now() - this.muzzleFlashTime < 150));
-                        const cursorSize = isSquashing ? 35 : 25;
-                        const cursorColor = isSquashing ? '#ef4444' : '#4ade80';
+                        this.ctx.save();
+                        this.ctx.translate(this.cursorX, this.cursorY);
 
-                        // Squash effect ring
-                        if (isSquashing) {
-                            const squashGradient = this.ctx.createRadialGradient(
-                                this.cursorX, this.cursorY, 0,
-                                this.cursorX, this.cursorY, 50
-                            );
-                            squashGradient.addColorStop(0, 'rgba(239, 68, 68, 0.6)');
-                            squashGradient.addColorStop(0.5, 'rgba(239, 68, 68, 0.2)');
-                            squashGradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
-                            this.ctx.beginPath();
-                            this.ctx.arc(this.cursorX, this.cursorY, 50, 0, Math.PI * 2);
-                            this.ctx.fillStyle = squashGradient;
-                            this.ctx.fill();
+                        // Calculate squash animation progress
+                        let squashProgress = 0;
+                        if (this.isSquashing) {
+                            const elapsed = Date.now() - this.squashStartTime;
+                            squashProgress = Math.min(1, elapsed / this.squashDuration);
+                            // Bounce effect: quick down, slower up
+                            if (squashProgress < 0.3) {
+                                squashProgress = squashProgress / 0.3; // Quick down
+                            } else {
+                                squashProgress = 1 - ((squashProgress - 0.3) / 0.7); // Slower up
+                            }
                         }
 
-                        // Finger circle
-                        this.ctx.beginPath();
-                        this.ctx.arc(this.cursorX, this.cursorY, cursorSize, 0, Math.PI * 2);
-                        const fingerGradient = this.ctx.createRadialGradient(
-                            this.cursorX - cursorSize * 0.3, this.cursorY - cursorSize * 0.3, 0,
-                            this.cursorX, this.cursorY, cursorSize
-                        );
-                        fingerGradient.addColorStop(0, isSquashing ? '#fca5a5' : '#86efac');
-                        fingerGradient.addColorStop(1, cursorColor);
-                        this.ctx.fillStyle = fingerGradient;
-                        this.ctx.fill();
+                        // Calculate dwell progress for visual feedback
+                        let dwellProgress = 0;
+                        if (this.currentTarget && !this.currentTarget.hit) {
+                            dwellProgress = Math.min(1, this.currentTarget.dwellTime / this.currentTarget.dwellThreshold);
+                        }
 
-                        // Border
-                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                        // Swatter tilts based on dwell progress (ready to squash)
+                        const tiltAngle = dwellProgress * 0.3; // Max 0.3 radians tilt
+                        const squashScale = this.isSquashing ? 1 + squashProgress * 0.3 : 1;
+                        const squashY = this.isSquashing ? squashProgress * 15 : 0;
+
+                        this.ctx.rotate(-0.3 + tiltAngle); // Base angle + tilt
+                        this.ctx.translate(0, squashY);
+                        this.ctx.scale(squashScale, this.isSquashing ? 1 - squashProgress * 0.2 : 1);
+
+                        // Swatter head (mesh part)
+                        const headWidth = 50;
+                        const headHeight = 60;
+
+                        // Swatter color based on state
+                        let swatterColor = '#4ade80'; // Green default
+                        if (this.isSquashing) {
+                            swatterColor = '#ef4444'; // Red when squashing
+                        } else if (dwellProgress > 0.5) {
+                            swatterColor = '#f97316'; // Orange when almost ready
+                        } else if (dwellProgress > 0) {
+                            swatterColor = '#fbbf24'; // Yellow when dwelling
+                        }
+
+                        // Swatter head outline
+                        this.ctx.beginPath();
+                        this.ctx.roundRect(-headWidth/2, -headHeight/2, headWidth, headHeight, 8);
+                        this.ctx.fillStyle = swatterColor;
+                        this.ctx.fill();
+                        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                         this.ctx.lineWidth = 3;
                         this.ctx.stroke();
 
-                        // Highlight
+                        // Mesh pattern (grid lines)
+                        this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                        this.ctx.lineWidth = 1.5;
+                        // Vertical lines
+                        for (let i = -headWidth/2 + 8; i < headWidth/2; i += 8) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(i, -headHeight/2 + 5);
+                            this.ctx.lineTo(i, headHeight/2 - 5);
+                            this.ctx.stroke();
+                        }
+                        // Horizontal lines
+                        for (let i = -headHeight/2 + 8; i < headHeight/2; i += 8) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(-headWidth/2 + 5, i);
+                            this.ctx.lineTo(headWidth/2 - 5, i);
+                            this.ctx.stroke();
+                        }
+
+                        // Handle
+                        const handleLength = 80;
+                        const handleWidth = 10;
                         this.ctx.beginPath();
-                        this.ctx.arc(this.cursorX - cursorSize * 0.25, this.cursorY - cursorSize * 0.25, cursorSize * 0.3, 0, Math.PI * 2);
-                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                        this.ctx.roundRect(-handleWidth/2, headHeight/2, handleWidth, handleLength, 3);
+                        this.ctx.fillStyle = '#8B4513'; // Brown handle
                         this.ctx.fill();
+                        this.ctx.strokeStyle = '#5D2E0C';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+
+                        // Handle grip lines
+                        this.ctx.strokeStyle = '#5D2E0C';
+                        this.ctx.lineWidth = 1;
+                        for (let i = headHeight/2 + 15; i < headHeight/2 + handleLength - 10; i += 12) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(-handleWidth/2 + 2, i);
+                            this.ctx.lineTo(handleWidth/2 - 2, i);
+                            this.ctx.stroke();
+                        }
+
+                        // Dwell progress ring around swatter head
+                        if (dwellProgress > 0 && !this.isSquashing) {
+                            this.ctx.beginPath();
+                            this.ctx.arc(0, 0, headWidth/2 + 15, -Math.PI/2, -Math.PI/2 + dwellProgress * Math.PI * 2);
+                            this.ctx.strokeStyle = swatterColor;
+                            this.ctx.lineWidth = 5;
+                            this.ctx.lineCap = 'round';
+                            this.ctx.stroke();
+                        }
+
+                        // Squash impact effect
+                        if (this.isSquashing && squashProgress > 0.2) {
+                            const impactAlpha = (1 - squashProgress) * 0.6;
+                            const impactRadius = 30 + squashProgress * 40;
+                            const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, impactRadius);
+                            gradient.addColorStop(0, `rgba(239, 68, 68, ${impactAlpha})`);
+                            gradient.addColorStop(0.5, `rgba(239, 68, 68, ${impactAlpha * 0.5})`);
+                            gradient.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                            this.ctx.beginPath();
+                            this.ctx.arc(0, 0, impactRadius, 0, Math.PI * 2);
+                            this.ctx.fillStyle = gradient;
+                            this.ctx.fill();
+                        }
+
+                        this.ctx.restore();
                     }
 
                     // Draw points popups
