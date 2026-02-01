@@ -2495,8 +2495,9 @@
                     flipTop.querySelector('span').textContent = currentValue;
                     flipBottom.querySelector('span').textContent = newValue;
 
-                    // Update bottom static panel to show new value (visible under flip)
-                    digitEl.querySelector('.digit-bottom span').textContent = newValue;
+                    // Update static top to new value immediately (revealed as flip-top moves away)
+                    digitEl.querySelector('.digit-top span').textContent = newValue;
+                    // Static bottom keeps old value - flip-bottom will cover it with new value
 
                     // Remove old animation class and force reflow
                     digitEl.classList.remove('flipping');
@@ -2505,9 +2506,9 @@
                     // Start flip animation
                     digitEl.classList.add('flipping');
 
-                    // After animation, update top panel and remove animation class
+                    // After animation completes, update bottom static panel and cleanup
                     setTimeout(() => {
-                        digitEl.querySelector('.digit-top span').textContent = newValue;
+                        digitEl.querySelector('.digit-bottom span').textContent = newValue;
                         digitEl.classList.remove('flipping');
                         digitEl.dataset.value = newValue;
                     }, 450);
