@@ -1141,6 +1141,76 @@
                     squeakOsc.start(now + 0.02);
                     squeakOsc.stop(now + 0.12);
 
+                    // === Layer 5: Crunchy shell crackle ===
+                    const crunchDuration = 0.25;
+                    const crunchBuffer = ctx.createBuffer(1, ctx.sampleRate * crunchDuration, ctx.sampleRate);
+                    const crunchData = crunchBuffer.getChannelData(0);
+
+                    // Create crackling texture with random pops
+                    for (let i = 0; i < crunchData.length; i++) {
+                        const t = i / crunchData.length;
+                        const envelope = Math.pow(1 - t, 2);
+
+                        // Random crackle pops
+                        if (Math.random() < 0.15) {
+                            crunchData[i] = (Math.random() > 0.5 ? 1 : -1) * envelope * (0.5 + Math.random() * 0.5);
+                        } else {
+                            crunchData[i] = (Math.random() * 2 - 1) * envelope * 0.3;
+                        }
+                    }
+
+                    const crunchNoise = ctx.createBufferSource();
+                    crunchNoise.buffer = crunchBuffer;
+
+                    // Highpass filter for crispy crunch
+                    const crunchHighpass = ctx.createBiquadFilter();
+                    crunchHighpass.type = 'highpass';
+                    crunchHighpass.frequency.value = 2000;
+
+                    // Bandpass for crunch character
+                    const crunchBandpass = ctx.createBiquadFilter();
+                    crunchBandpass.type = 'bandpass';
+                    crunchBandpass.frequency.setValueAtTime(4000 * pitchVar, now);
+                    crunchBandpass.frequency.exponentialRampToValueAtTime(1500, now + crunchDuration);
+                    crunchBandpass.Q.value = 2;
+
+                    const crunchGain = ctx.createGain();
+                    crunchGain.gain.setValueAtTime(0.3, now + 0.01);
+                    crunchGain.gain.exponentialRampToValueAtTime(0.01, now + crunchDuration);
+
+                    crunchNoise.connect(crunchHighpass);
+                    crunchHighpass.connect(crunchBandpass);
+                    crunchBandpass.connect(crunchGain);
+                    crunchGain.connect(ctx.destination);
+                    crunchNoise.start(now + 0.01); // Slight delay to overlap with squish
+                    crunchNoise.stop(now + crunchDuration);
+
+                    // === Layer 6: Extra crackle pops ===
+                    for (let p = 0; p < 3; p++) {
+                        const popDelay = 0.03 + Math.random() * 0.1;
+                        const popFreq = 2000 + Math.random() * 3000;
+
+                        const clickOsc = ctx.createOscillator();
+                        clickOsc.type = 'square';
+                        clickOsc.frequency.setValueAtTime(popFreq, now + popDelay);
+                        clickOsc.frequency.exponentialRampToValueAtTime(500, now + popDelay + 0.02);
+
+                        const clickGain = ctx.createGain();
+                        clickGain.gain.setValueAtTime(0.08, now + popDelay);
+                        clickGain.gain.exponentialRampToValueAtTime(0.001, now + popDelay + 0.03);
+
+                        const clickFilter = ctx.createBiquadFilter();
+                        clickFilter.type = 'bandpass';
+                        clickFilter.frequency.value = 3000;
+                        clickFilter.Q.value = 5;
+
+                        clickOsc.connect(clickFilter);
+                        clickFilter.connect(clickGain);
+                        clickGain.connect(ctx.destination);
+                        clickOsc.start(now + popDelay);
+                        clickOsc.stop(now + popDelay + 0.03);
+                    }
+
                 } catch (e) {
                     console.warn('Error playing sound:', e);
                 }
