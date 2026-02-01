@@ -89,13 +89,9 @@
             color: #4ade80;
         }
 
-        #timer .stat-value {
-            color: #f472b6;
-        }
-
         #handStatus {
             position: absolute;
-            top: 20px;
+            top: 130px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.5);
@@ -105,6 +101,183 @@
             backdrop-filter: blur(10px);
             transition: all 0.3s ease;
             z-index: 5;
+        }
+
+        /* Flip Clock Timer */
+        #flipTimer {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        .flip-clock {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .flip-digit {
+            position: relative;
+            width: 55px;
+            height: 75px;
+            perspective: 300px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Center line divider */
+        .flip-digit::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #222;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+
+        .flip-digit .digit-top,
+        .flip-digit .digit-bottom {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            overflow: hidden;
+            background: #3a3a3a;
+        }
+
+        .flip-digit .digit-top {
+            top: 0;
+            border-radius: 6px 6px 0 0;
+            background: linear-gradient(180deg, #4d4d4d 0%, #3a3a3a 100%);
+            border-bottom: 1px solid #222;
+        }
+
+        .flip-digit .digit-bottom {
+            bottom: 0;
+            border-radius: 0 0 6px 6px;
+            background: linear-gradient(180deg, #333 0%, #2a2a2a 100%);
+        }
+
+        .flip-digit .digit-top span,
+        .flip-digit .digit-bottom span {
+            position: absolute;
+            width: 100%;
+            height: 200%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 52px;
+            font-weight: bold;
+            color: #f5f5f5;
+            font-family: 'Arial Black', Arial, sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .flip-digit .digit-top span {
+            top: 0;
+        }
+
+        .flip-digit .digit-bottom span {
+            bottom: 0;
+        }
+
+        /* Flip animation panels */
+        .flip-digit .digit-flip-top,
+        .flip-digit .digit-flip-bottom {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            overflow: hidden;
+            backface-visibility: hidden;
+        }
+
+        .flip-digit .digit-flip-top {
+            top: 0;
+            transform-origin: bottom center;
+            border-radius: 6px 6px 0 0;
+            background: linear-gradient(180deg, #4d4d4d 0%, #3a3a3a 100%);
+            z-index: 3;
+            display: none;
+        }
+
+        .flip-digit .digit-flip-top span {
+            position: absolute;
+            width: 100%;
+            height: 200%;
+            top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 52px;
+            font-weight: bold;
+            color: #f5f5f5;
+            font-family: 'Arial Black', Arial, sans-serif;
+        }
+
+        .flip-digit .digit-flip-bottom {
+            bottom: 0;
+            transform-origin: top center;
+            transform: rotateX(90deg);
+            border-radius: 0 0 6px 6px;
+            background: linear-gradient(180deg, #333 0%, #2a2a2a 100%);
+            z-index: 2;
+            display: none;
+        }
+
+        .flip-digit .digit-flip-bottom span {
+            position: absolute;
+            width: 100%;
+            height: 200%;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 52px;
+            font-weight: bold;
+            color: #f5f5f5;
+            font-family: 'Arial Black', Arial, sans-serif;
+        }
+
+        .flip-digit.flipping .digit-flip-top {
+            display: block;
+            animation: flipDown 0.3s ease-in forwards;
+        }
+
+        .flip-digit.flipping .digit-flip-bottom {
+            display: block;
+            animation: flipUp 0.3s ease-out 0.15s forwards;
+        }
+
+        @keyframes flipDown {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-90deg); }
+        }
+
+        @keyframes flipUp {
+            0% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0deg); }
+        }
+
+        .timer-label {
+            margin-top: 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+        }
+
+        /* Warning state for low time */
+        .flip-digit.warning .digit-top span,
+        .flip-digit.warning .digit-bottom span,
+        .flip-digit.warning .digit-flip-top span,
+        .flip-digit.warning .digit-flip-bottom span {
+            color: #ff5555;
         }
 
         #handStatus.detected {
@@ -532,10 +705,25 @@
                 <div class="stat-label">Score</div>
                 <div class="stat-value">0</div>
             </div>
-            <div class="stat-box" id="timer">
-                <div class="stat-label">Time</div>
-                <div class="stat-value">60</div>
+        </div>
+
+        <!-- Flip Clock Timer -->
+        <div id="flipTimer">
+            <div class="flip-clock">
+                <div class="flip-digit" id="digit-tens">
+                    <div class="digit-top"><span>3</span></div>
+                    <div class="digit-bottom"><span>3</span></div>
+                    <div class="digit-flip-top"></div>
+                    <div class="digit-flip-bottom"></div>
+                </div>
+                <div class="flip-digit" id="digit-ones">
+                    <div class="digit-top"><span>0</span></div>
+                    <div class="digit-bottom"><span>0</span></div>
+                    <div class="digit-flip-top"></div>
+                    <div class="digit-flip-bottom"></div>
+                </div>
             </div>
+            <div class="timer-label">TIME</div>
         </div>
 
         <a href="https://www.samirmadhavan.com?utm_source=pinch_the_bug&utm_medium=game&utm_campaign=bug_game" target="_blank" id="siteLink">samirmadhavan.com</a>
@@ -1355,7 +1543,11 @@
                 this.isSquashing = false;
                 this.squashStartTime = 0;
                 this.updateScoreDisplay();
-                this.updateTimerDisplay();
+                this.initFlipTimer(); // Initialize timer without animation
+
+                // Remove warning class
+                document.getElementById('digit-tens').classList.remove('warning');
+                document.getElementById('digit-ones').classList.remove('warning');
 
                 // Spawn initial target
                 this.spawnTarget();
@@ -1757,8 +1949,78 @@
                 document.querySelector('#score .stat-value').textContent = this.score;
             }
 
+            initFlipTimer() {
+                // Set initial timer values without animation
+                const time = Math.max(0, this.timeRemaining);
+                const tens = Math.floor(time / 10);
+                const ones = time % 10;
+
+                this.setDigitValue('digit-tens', tens);
+                this.setDigitValue('digit-ones', ones);
+            }
+
+            setDigitValue(digitId, value) {
+                const digitEl = document.getElementById(digitId);
+                digitEl.querySelector('.digit-top span').textContent = value;
+                digitEl.querySelector('.digit-bottom span').textContent = value;
+                digitEl.dataset.value = value;
+            }
+
             updateTimerDisplay() {
-                document.querySelector('#timer .stat-value').textContent = this.timeRemaining;
+                const time = Math.max(0, this.timeRemaining);
+                const tens = Math.floor(time / 10);
+                const ones = time % 10;
+
+                this.updateFlipDigit('digit-tens', tens);
+                this.updateFlipDigit('digit-ones', ones);
+
+                // Add warning class when time is low
+                const tensDigit = document.getElementById('digit-tens');
+                const onesDigit = document.getElementById('digit-ones');
+                if (time <= 10) {
+                    tensDigit.classList.add('warning');
+                    onesDigit.classList.add('warning');
+                } else {
+                    tensDigit.classList.remove('warning');
+                    onesDigit.classList.remove('warning');
+                }
+            }
+
+            updateFlipDigit(digitId, newValue) {
+                const digitEl = document.getElementById(digitId);
+                const currentValue = parseInt(digitEl.dataset.value || digitEl.querySelector('.digit-top span').textContent);
+
+                if (currentValue !== newValue) {
+                    const flipTop = digitEl.querySelector('.digit-flip-top');
+                    const flipBottom = digitEl.querySelector('.digit-flip-bottom');
+
+                    // Set up flip panels with old value (top) and new value (bottom)
+                    if (!flipTop.querySelector('span')) {
+                        flipTop.innerHTML = '<span></span>';
+                        flipBottom.innerHTML = '<span></span>';
+                    }
+                    flipTop.querySelector('span').textContent = currentValue;
+                    flipBottom.querySelector('span').textContent = newValue;
+
+                    // Update bottom static panel to show new value (visible under flip)
+                    digitEl.querySelector('.digit-bottom span').textContent = newValue;
+
+                    // Remove old animation class and force reflow
+                    digitEl.classList.remove('flipping');
+                    void digitEl.offsetWidth;
+
+                    // Start flip animation
+                    digitEl.classList.add('flipping');
+
+                    // After animation, update top panel and remove animation class
+                    setTimeout(() => {
+                        digitEl.querySelector('.digit-top span').textContent = newValue;
+                        digitEl.classList.remove('flipping');
+                        digitEl.dataset.value = newValue;
+                    }, 450);
+
+                    digitEl.dataset.value = newValue;
+                }
             }
 
             showModal(id) {
