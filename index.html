@@ -311,6 +311,36 @@
             background: rgba(0, 0, 0, 0.5);
         }
 
+        /* Sound Toggle Button */
+        .sound-btn {
+            position: absolute;
+            top: 20px;
+            right: 230px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.4);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .sound-btn:hover {
+            background: rgba(0, 0, 0, 0.6);
+            transform: scale(1.1);
+        }
+
+        .sound-btn.muted {
+            opacity: 0.6;
+        }
+
         .modal {
             position: absolute;
             top: 0;
@@ -707,6 +737,12 @@
             </div>
         </div>
 
+        <!-- Sound Toggle Button -->
+        <button id="soundToggle" class="sound-btn" title="Toggle Sound">
+            <span class="sound-on">🔊</span>
+            <span class="sound-off" style="display:none;">🔇</span>
+        </button>
+
         <!-- Flip Clock Timer -->
         <div id="flipTimer">
             <div class="flip-clock">
@@ -982,6 +1018,136 @@
             "MOMMY!", "NOT TODAY!", "PANIC!", "EEK!", "OH CRUD!",
             "YIKES!", "GULP!", "UH OH..."
         ];
+
+        // ============================================
+        // Sound System
+        // ============================================
+        class SoundSystem {
+            constructor() {
+                this.enabled = true;
+                this.audioContext = null;
+                this.initialized = false;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn('Web Audio API not supported');
+                }
+            }
+
+            toggle() {
+                this.enabled = !this.enabled;
+                return this.enabled;
+            }
+
+            playSquish() {
+                if (!this.enabled || !this.initialized) return;
+
+                try {
+                    const ctx = this.audioContext;
+                    const now = ctx.currentTime;
+
+                    // Randomize pitch slightly for variety
+                    const pitchVar = 0.9 + Math.random() * 0.2;
+
+                    // === Layer 1: Satisfying "pop" attack ===
+                    const popOsc = ctx.createOscillator();
+                    popOsc.type = 'sine';
+                    popOsc.frequency.setValueAtTime(400 * pitchVar, now);
+                    popOsc.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+
+                    const popGain = ctx.createGain();
+                    popGain.gain.setValueAtTime(0.4, now);
+                    popGain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                    popOsc.connect(popGain);
+                    popGain.connect(ctx.destination);
+                    popOsc.start(now);
+                    popOsc.stop(now + 0.1);
+
+                    // === Layer 2: Wet "splat" noise ===
+                    const splatDuration = 0.2;
+                    const splatBuffer = ctx.createBuffer(1, ctx.sampleRate * splatDuration, ctx.sampleRate);
+                    const splatData = splatBuffer.getChannelData(0);
+                    for (let i = 0; i < splatData.length; i++) {
+                        const t = i / splatData.length;
+                        // Shaped noise with quick attack, smooth decay
+                        const envelope = Math.pow(1 - t, 1.5) * (t < 0.1 ? t * 10 : 1);
+                        splatData[i] = (Math.random() * 2 - 1) * envelope;
+                    }
+
+                    const splatNoise = ctx.createBufferSource();
+                    splatNoise.buffer = splatBuffer;
+
+                    // Bandpass filter for wet splat character
+                    const splatFilter = ctx.createBiquadFilter();
+                    splatFilter.type = 'bandpass';
+                    splatFilter.frequency.setValueAtTime(1200 * pitchVar, now);
+                    splatFilter.frequency.exponentialRampToValueAtTime(400, now + splatDuration);
+                    splatFilter.Q.value = 1.5;
+
+                    const splatGain = ctx.createGain();
+                    splatGain.gain.setValueAtTime(0.35, now);
+                    splatGain.gain.exponentialRampToValueAtTime(0.01, now + splatDuration);
+
+                    splatNoise.connect(splatFilter);
+                    splatFilter.connect(splatGain);
+                    splatGain.connect(ctx.destination);
+                    splatNoise.start(now);
+                    splatNoise.stop(now + splatDuration);
+
+                    // === Layer 3: Deep thump for impact ===
+                    const thumpOsc = ctx.createOscillator();
+                    thumpOsc.type = 'sine';
+                    thumpOsc.frequency.setValueAtTime(120 * pitchVar, now);
+                    thumpOsc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+
+                    const thumpGain = ctx.createGain();
+                    thumpGain.gain.setValueAtTime(0.5, now);
+                    thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                    // Add slight distortion for punch
+                    const thumpShaper = ctx.createWaveShaper();
+                    const curve = new Float32Array(256);
+                    for (let i = 0; i < 256; i++) {
+                        const x = (i / 128) - 1;
+                        curve[i] = Math.tanh(x * 2);
+                    }
+                    thumpShaper.curve = curve;
+
+                    thumpOsc.connect(thumpShaper);
+                    thumpShaper.connect(thumpGain);
+                    thumpGain.connect(ctx.destination);
+                    thumpOsc.start(now);
+                    thumpOsc.stop(now + 0.15);
+
+                    // === Layer 4: High "squeak" for cartoon effect ===
+                    const squeakOsc = ctx.createOscillator();
+                    squeakOsc.type = 'sine';
+                    squeakOsc.frequency.setValueAtTime(800 * pitchVar, now + 0.02);
+                    squeakOsc.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+
+                    const squeakGain = ctx.createGain();
+                    squeakGain.gain.setValueAtTime(0, now);
+                    squeakGain.gain.linearRampToValueAtTime(0.15, now + 0.03);
+                    squeakGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+                    squeakOsc.connect(squeakGain);
+                    squeakGain.connect(ctx.destination);
+                    squeakOsc.start(now + 0.02);
+                    squeakOsc.stop(now + 0.12);
+
+                } catch (e) {
+                    console.warn('Error playing sound:', e);
+                }
+            }
+        }
+
+        const soundSystem = new SoundSystem();
 
         // ============================================
         // Bug Class
@@ -1528,6 +1694,15 @@
                     this.leaderboardPage++;
                     this.renderLeaderboardPage();
                 });
+
+                // Sound toggle button
+                const soundBtn = document.getElementById('soundToggle');
+                soundBtn.addEventListener('click', () => {
+                    const isEnabled = soundSystem.toggle();
+                    soundBtn.querySelector('.sound-on').style.display = isEnabled ? 'block' : 'none';
+                    soundBtn.querySelector('.sound-off').style.display = isEnabled ? 'none' : 'block';
+                    soundBtn.classList.toggle('muted', !isEnabled);
+                });
             }
 
             async initMediaPipe() {
@@ -1695,6 +1870,7 @@
                 this.score += target.points;
                 this.updateScoreDisplay();
                 this.showPointsPopup(target.x, target.y, target.points);
+                soundSystem.playSquish();
             }
 
             showPointsPopup(x, y, points) {
@@ -1711,6 +1887,9 @@
             }
 
             startGame() {
+                // Initialize sound system (requires user interaction)
+                soundSystem.init();
+
                 this.hideAllModals();
                 this.state = 'PLAYING';
                 this.score = 0;
