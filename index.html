@@ -368,6 +368,86 @@
             color: rgba(255, 255, 255, 0.7);
         }
 
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-pagination {
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-pagination:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #4ade80;
+        }
+
+        .btn-pagination:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .your-score-box {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 211, 238, 0.2) 100%);
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+        }
+
+        .your-score-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .your-score-details {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .your-rank {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ade80;
+            min-width: 50px;
+        }
+
+        .your-name {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .your-score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #22d3ee;
+        }
+
         .high-scores {
             margin: 20px 0;
             text-align: left;
@@ -376,6 +456,34 @@
         .high-scores h3 {
             margin-bottom: 15px;
             text-align: center;
+        }
+
+        #leaderboardList,
+        #menuLeaderboardList {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        #leaderboardList::-webkit-scrollbar,
+        #menuLeaderboardList::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #leaderboardList::-webkit-scrollbar-track,
+        #menuLeaderboardList::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        #leaderboardList::-webkit-scrollbar-thumb,
+        #menuLeaderboardList::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        #leaderboardList::-webkit-scrollbar-thumb:hover,
+        #menuLeaderboardList::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
         }
 
         .high-score-item {
@@ -469,8 +577,13 @@
             <div class="modal-content">
                 <h2>Leaderboard</h2>
                 <div class="high-scores">
-                    <h3>Top Players</h3>
+                    <h3>All Players</h3>
                     <div id="menuLeaderboardList"></div>
+                    <div class="pagination hidden" id="menuPagination">
+                        <button class="btn-pagination" id="menuPrevBtn" disabled>&laquo; Prev</button>
+                        <span class="pagination-info" id="menuPageInfo">Page 1</span>
+                        <button class="btn-pagination" id="menuNextBtn">Next &raquo;</button>
+                    </div>
                 </div>
                 <button class="btn btn-primary" id="closeLeaderboardBtn">Back</button>
             </div>
@@ -519,11 +632,24 @@
         <div class="modal hidden" id="gameOverModal">
             <div class="modal-content">
                 <h2>Leaderboard</h2>
-                <div class="final-score" id="finalScore">0</div>
 
-                <div class="high-scores" id="highScores">
-                    <h3>Top Players</h3>
+                <div class="your-score-box" id="yourScoreBox">
+                    <div class="your-score-label">Your Score</div>
+                    <div class="your-score-details">
+                        <span class="your-rank" id="yourRank">#1</span>
+                        <span class="your-name" id="yourName">Player</span>
+                        <span class="your-score" id="yourScore">0</span>
+                    </div>
+                </div>
+
+                <div class="high-scores">
+                    <h3>All Players</h3>
                     <div id="leaderboardList"></div>
+                    <div class="pagination hidden" id="gameOverPagination">
+                        <button class="btn-pagination" id="gameOverPrevBtn" disabled>&laquo; Prev</button>
+                        <span class="pagination-info" id="gameOverPageInfo">Page 1</span>
+                        <button class="btn-pagination" id="gameOverNextBtn">Next &raquo;</button>
+                    </div>
                 </div>
 
                 <button class="btn btn-primary" id="restartBtn">Play Again</button>
@@ -918,6 +1044,12 @@
                 this.handDetected = false;
                 this.handLostTime = 0;
 
+                // Leaderboard pagination
+                this.leaderboardData = [];
+                this.leaderboardPage = 0;
+                this.leaderboardPageSize = 50;
+                this.leaderboardContext = null; // 'menu' or 'gameOver'
+
                 this.init();
             }
 
@@ -1006,6 +1138,26 @@
                 document.getElementById('viewLeaderboardBtn2').addEventListener('click', () => {
                     this.hideModal('notHigherModal');
                     this.showLeaderboard();
+                });
+
+                // Pagination buttons - Menu leaderboard
+                document.getElementById('menuPrevBtn').addEventListener('click', () => {
+                    this.leaderboardPage--;
+                    this.renderLeaderboardPage();
+                });
+                document.getElementById('menuNextBtn').addEventListener('click', () => {
+                    this.leaderboardPage++;
+                    this.renderLeaderboardPage();
+                });
+
+                // Pagination buttons - Game over leaderboard
+                document.getElementById('gameOverPrevBtn').addEventListener('click', () => {
+                    this.leaderboardPage--;
+                    this.renderLeaderboardPage();
+                });
+                document.getElementById('gameOverNextBtn').addEventListener('click', () => {
+                    this.leaderboardPage++;
+                    this.renderLeaderboardPage();
                 });
             }
 
@@ -1449,52 +1601,68 @@
             }
 
             async showLeaderboard() {
-                document.getElementById('finalScore').textContent = this.finalScore;
                 const listContainer = document.getElementById('leaderboardList');
+                const yourScoreBox = document.getElementById('yourScoreBox');
                 this.showModal('gameOverModal');
 
                 // Check if Supabase is available
                 if (!supabaseClient) {
                     listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">Leaderboard unavailable</p>';
+                    document.getElementById('gameOverPagination').classList.add('hidden');
+                    yourScoreBox.style.display = 'none';
                     return;
                 }
 
                 listContainer.innerHTML = '<div class="loading-spinner">Loading leaderboard...</div>';
 
                 try {
-                    // Fetch top 10 scores from Supabase
+                    // Fetch all scores from Supabase
                     const { data, error } = await supabaseClient
                         .from('leaderboard')
                         .select('*')
-                        .order('score', { ascending: false })
-                        .limit(10);
+                        .order('score', { ascending: false });
 
                     if (error) throw error;
 
                     if (!data || data.length === 0) {
                         listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No scores yet. Be the first!</p>';
+                        document.getElementById('gameOverPagination').classList.add('hidden');
+                        yourScoreBox.style.display = 'none';
                         return;
                     }
 
-                    let html = '';
-                    data.forEach((entry, i) => {
-                        const isCurrentPlayer = this.currentPlayerName &&
+                    // Find current player's rank
+                    let playerRank = '-';
+                    const playerName = this.currentPlayerName || localStorage.getItem('pinchTheBugPlayerName') || 'You';
+
+                    if (this.currentPlayerName) {
+                        const playerIndex = data.findIndex(entry =>
                             entry.player_name === this.currentPlayerName &&
-                            entry.score === this.finalScore;
-                        html += `<div class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
-                            <span class="leaderboard-rank">#${i + 1}</span>
-                            <span class="leaderboard-name">${this.escapeHtml(entry.player_name)}</span>
-                            <span class="leaderboard-score">${entry.score}</span>
-                        </div>`;
-                    });
-                    listContainer.innerHTML = html;
+                            entry.score === this.finalScore
+                        );
+                        if (playerIndex !== -1) {
+                            playerRank = `#${playerIndex + 1}`;
+                        }
+                    }
+
+                    // Update your score box
+                    document.getElementById('yourRank').textContent = playerRank;
+                    document.getElementById('yourName').textContent = this.escapeHtml(playerName);
+                    document.getElementById('yourScore').textContent = this.finalScore;
+                    yourScoreBox.style.display = 'block';
+
+                    // Store data and render first page
+                    this.leaderboardData = data;
+                    this.leaderboardPage = 0;
+                    this.leaderboardContext = 'gameOver';
+                    this.renderLeaderboardPage();
 
                 } catch (error) {
                     console.error('Error fetching leaderboard:', error);
                     listContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Failed to load leaderboard</p>';
+                    document.getElementById('gameOverPagination').classList.add('hidden');
+                    yourScoreBox.style.display = 'none';
                 }
-
-                this.currentPlayerName = null;
             }
 
             escapeHtml(text) {
@@ -1511,36 +1679,78 @@
 
                 if (!supabaseClient) {
                     listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">Leaderboard unavailable</p>';
+                    document.getElementById('menuPagination').classList.add('hidden');
                     return;
                 }
 
                 try {
+                    // Fetch all scores from Supabase
                     const { data, error } = await supabaseClient
                         .from('leaderboard')
                         .select('*')
-                        .order('score', { ascending: false })
-                        .limit(10);
+                        .order('score', { ascending: false });
 
                     if (error) throw error;
 
                     if (!data || data.length === 0) {
                         listContainer.innerHTML = '<p style="text-align: center; opacity: 0.7;">No scores yet. Be the first!</p>';
+                        document.getElementById('menuPagination').classList.add('hidden');
                         return;
                     }
 
-                    let html = '';
-                    data.forEach((entry, i) => {
-                        html += `<div class="leaderboard-item">
-                            <span class="leaderboard-rank">#${i + 1}</span>
-                            <span class="leaderboard-name">${this.escapeHtml(entry.player_name)}</span>
-                            <span class="leaderboard-score">${entry.score}</span>
-                        </div>`;
-                    });
-                    listContainer.innerHTML = html;
+                    // Store data and render first page
+                    this.leaderboardData = data;
+                    this.leaderboardPage = 0;
+                    this.leaderboardContext = 'menu';
+                    this.renderLeaderboardPage();
 
                 } catch (error) {
                     console.error('Error fetching leaderboard:', error);
                     listContainer.innerHTML = '<p style="text-align: center; color: #ef4444;">Failed to load leaderboard</p>';
+                    document.getElementById('menuPagination').classList.add('hidden');
+                }
+            }
+
+            renderLeaderboardPage() {
+                const isMenu = this.leaderboardContext === 'menu';
+                const listContainer = document.getElementById(isMenu ? 'menuLeaderboardList' : 'leaderboardList');
+                const paginationContainer = document.getElementById(isMenu ? 'menuPagination' : 'gameOverPagination');
+                const prevBtn = document.getElementById(isMenu ? 'menuPrevBtn' : 'gameOverPrevBtn');
+                const nextBtn = document.getElementById(isMenu ? 'menuNextBtn' : 'gameOverNextBtn');
+                const pageInfo = document.getElementById(isMenu ? 'menuPageInfo' : 'gameOverPageInfo');
+
+                const totalPages = Math.ceil(this.leaderboardData.length / this.leaderboardPageSize);
+                const startIndex = this.leaderboardPage * this.leaderboardPageSize;
+                const endIndex = Math.min(startIndex + this.leaderboardPageSize, this.leaderboardData.length);
+                const pageData = this.leaderboardData.slice(startIndex, endIndex);
+
+                let html = '';
+                pageData.forEach((entry, i) => {
+                    const rank = startIndex + i + 1;
+                    const isCurrentPlayer = !isMenu && this.currentPlayerName &&
+                        entry.player_name === this.currentPlayerName &&
+                        entry.score === this.finalScore;
+                    html += `<div class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
+                        <span class="leaderboard-rank">#${rank}</span>
+                        <span class="leaderboard-name">${this.escapeHtml(entry.player_name)}</span>
+                        <span class="leaderboard-score">${entry.score}</span>
+                    </div>`;
+                });
+                listContainer.innerHTML = html;
+
+                // Show/hide pagination based on total count
+                if (this.leaderboardData.length > this.leaderboardPageSize) {
+                    paginationContainer.classList.remove('hidden');
+                    prevBtn.disabled = this.leaderboardPage === 0;
+                    nextBtn.disabled = this.leaderboardPage >= totalPages - 1;
+                    pageInfo.textContent = `Page ${this.leaderboardPage + 1} of ${totalPages}`;
+                } else {
+                    paginationContainer.classList.add('hidden');
+                }
+
+                // Clear current player after rendering game over leaderboard
+                if (!isMenu) {
+                    this.currentPlayerName = null;
                 }
             }
 
