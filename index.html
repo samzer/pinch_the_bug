@@ -773,11 +773,6 @@
                 <p>Use your fly swatter to squash the bugs!</p>
 
                 <div class="calibration-area">
-                    <div class="slider-container">
-                        <label>Tracking Smoothness: <span id="smoothnessValue">0.3</span></label>
-                        <input type="range" class="slider" id="smoothnessSlider" min="0.1" max="0.8" step="0.05" value="0.3">
-                    </div>
-
                     <div class="test-area" id="testArea">
                         <div class="test-cursor" id="testCursor"></div>
                         <p style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.5;">
@@ -1735,15 +1730,6 @@
             }
 
             setupUI() {
-                // Smoothness slider
-                const slider = document.getElementById('smoothnessSlider');
-                const valueDisplay = document.getElementById('smoothnessValue');
-                slider.addEventListener('input', (e) => {
-                    const value = parseFloat(e.target.value);
-                    valueDisplay.textContent = value.toFixed(2);
-                    this.smoother.setAlpha(value);
-                });
-
                 // Start button
                 document.getElementById('startBtn').addEventListener('click', () => {
                     this.showModal('instructionsModal');
