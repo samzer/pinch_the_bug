@@ -962,6 +962,28 @@
         }
 
         // ============================================
+        // Bug Death Phrases
+        // ============================================
+        const deathPhrases = [
+            "NOOO!", "WHY?!", "OOF!", "SPLAT!", "ACK!", "UGH!",
+            "NOT COOL!", "RUDE!", "MY LEG!", "OUCH!", "BYE BYE!",
+            "TELL MY WIFE...", "I HAD PLANS!", "SO FLAT!", "*SQUISH*",
+            "CURSE YOU!", "AVENGE ME!", "WORTH IT!", "NO REGRETS!",
+            "I WAS JUST...", "BUT I'M CUTE!", "MOMMY!", "NOOOPE!",
+            "TOO YOUNG!", "MY BABIES!", "UNFAIR!", "MEDIC!",
+            "X_X", "RIP ME", "GG", "I'LL BE BACK!", "NOT AGAIN!",
+            "SO THIS IS...", "BETRAYED!", "WHY ME?!", "HALP!"
+        ];
+
+        const scaredPhrases = [
+            "OH NO!", "PLEASE NO!", "NOT THE SWATTER!", "AAAH!",
+            "SPARE ME!", "I'M TOO PRETTY!", "HAVE MERCY!", "WAIT WAIT!",
+            "I HAVE KIDS!", "RUN AWAY!", "NOPE NOPE!", "HELP!",
+            "MOMMY!", "NOT TODAY!", "PANIC!", "EEK!", "OH CRUD!",
+            "YIKES!", "GULP!", "UH OH..."
+        ];
+
+        // ============================================
         // Bug Class
         // ============================================
         class Bug {
@@ -990,9 +1012,17 @@
                 this.wiggle = 0; // Body wiggle
                 this.dwellThreshold = bugType.dwellThreshold; // Time to squash
                 this.dwellTime = 0; // Current dwell time
+
+                // Personality
+                this.deathPhrase = deathPhrases[Math.floor(Math.random() * deathPhrases.length)];
+                this.scaredPhrase = scaredPhrases[Math.floor(Math.random() * scaredPhrases.length)];
+                this.isScared = false;
+                this.eyeDirection = { x: 0, y: 0 }; // For looking around
+                this.blinkTimer = Math.random() * 3000;
+                this.isBlinking = false;
             }
 
-            update(deltaTime, canvasWidth, canvasHeight) {
+            update(deltaTime, canvasWidth, canvasHeight, cursorX, cursorY) {
                 this.canvasWidth = canvasWidth;
                 this.canvasHeight = canvasHeight;
 
@@ -1004,19 +1034,42 @@
                 // Hit animation
                 if (this.hit) {
                     this.hitTime += deltaTime;
-                    return this.hitTime < 500;
+                    return this.hitTime < 800; // Longer for speech bubble
                 }
 
-                // Move
-                this.x += this.vx * deltaTime * 0.06;
-                this.y += this.vy * deltaTime * 0.06;
+                // Move (faster if scared!)
+                const speedMultiplier = this.isScared ? 1.5 : 1;
+                this.x += this.vx * deltaTime * 0.06 * speedMultiplier;
+                this.y += this.vy * deltaTime * 0.06 * speedMultiplier;
 
-                // Animate legs and wiggle
-                this.legPhase += deltaTime * 0.02;
-                this.wiggle = Math.sin(this.legPhase * 2) * 0.1;
+                // Animate legs and wiggle (faster if scared)
+                const legSpeed = this.isScared ? 0.04 : 0.02;
+                this.legPhase += deltaTime * legSpeed;
+                this.wiggle = Math.sin(this.legPhase * 2) * (this.isScared ? 0.2 : 0.1);
 
                 // Update facing angle based on velocity
                 this.angle = Math.atan2(this.vy, this.vx);
+
+                // Eye tracking - look at cursor
+                if (cursorX !== undefined && cursorY !== undefined) {
+                    const dx = cursorX - this.x;
+                    const dy = cursorY - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    this.eyeDirection.x = (dx / dist) * 0.3 || 0;
+                    this.eyeDirection.y = (dy / dist) * 0.3 || 0;
+
+                    // Get scared if swatter is close (within 1.5x bug size)
+                    const scareDistance = this.size * 1.5;
+                    this.isScared = dist < scareDistance;
+                }
+
+                // Blinking
+                this.blinkTimer -= deltaTime;
+                if (this.blinkTimer <= 0) {
+                    this.isBlinking = true;
+                    this.blinkTimer = 2000 + Math.random() * 3000;
+                    setTimeout(() => { this.isBlinking = false; }, 150);
+                }
 
                 // Bounce off walls
                 const radius = (this.size * this.scale) / 2;
@@ -1047,9 +1100,9 @@
 
                 if (this.hit) {
                     // Squash animation
-                    const progress = this.hitTime / 500;
+                    const progress = this.hitTime / 800;
                     const alpha = 1 - progress;
-                    const squash = 1 + progress * 0.5;
+                    const squash = 1 + Math.min(progress * 2, 1) * 0.5;
 
                     ctx.scale(squash, 1 / squash);
 
@@ -1064,6 +1117,26 @@
                     ctx.ellipse(0, 0, s * 0.3, s * 0.4, 0, 0, Math.PI * 2);
                     ctx.fillStyle = this.color.replace('1)', `${alpha})`);
                     ctx.fill();
+
+                    // X_X eyes when dead
+                    if (progress < 0.7) {
+                        ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+                        ctx.lineWidth = 3;
+                        // Left X
+                        ctx.beginPath();
+                        ctx.moveTo(-s * 0.12, -s * 0.45);
+                        ctx.lineTo(-s * 0.02, -s * 0.35);
+                        ctx.moveTo(-s * 0.02, -s * 0.45);
+                        ctx.lineTo(-s * 0.12, -s * 0.35);
+                        ctx.stroke();
+                        // Right X
+                        ctx.beginPath();
+                        ctx.moveTo(s * 0.02, -s * 0.45);
+                        ctx.lineTo(s * 0.12, -s * 0.35);
+                        ctx.moveTo(s * 0.12, -s * 0.45);
+                        ctx.lineTo(s * 0.02, -s * 0.35);
+                        ctx.stroke();
+                    }
 
                     // Splatter particles
                     for (let i = 0; i < 8; i++) {
@@ -1081,7 +1154,21 @@
                     }
 
                     ctx.restore();
+
+                    // Draw death speech bubble (outside rotation)
+                    if (progress < 0.8) {
+                        this.drawSpeechBubble(ctx, this.deathPhrase, 1 - progress * 1.2);
+                    }
                     return;
+                }
+
+                // Draw scared speech bubble when swatter is close
+                if (this.isScared) {
+                    ctx.restore();
+                    this.drawSpeechBubble(ctx, this.scaredPhrase, 0.9);
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(this.angle + Math.PI / 2 + this.wiggle);
                 }
 
                 // Legs (3 pairs)
@@ -1141,18 +1228,55 @@
                 ctx.stroke();
 
                 // Eyes
+                const eyeY = -s * 0.4;
+                const eyeSize = this.isScared ? s * 0.08 : s * 0.06; // Bigger when scared
+
+                // Eye whites
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
-                ctx.arc(-s * 0.07, -s * 0.4, s * 0.06, 0, Math.PI * 2);
-                ctx.arc(s * 0.07, -s * 0.4, s * 0.06, 0, Math.PI * 2);
+                ctx.arc(-s * 0.07, eyeY, eyeSize, 0, Math.PI * 2);
+                ctx.arc(s * 0.07, eyeY, eyeSize, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
 
-                // Pupils
-                ctx.fillStyle = 'black';
-                ctx.beginPath();
-                ctx.arc(-s * 0.07, -s * 0.4, s * 0.03, 0, Math.PI * 2);
-                ctx.arc(s * 0.07, -s * 0.4, s * 0.03, 0, Math.PI * 2);
-                ctx.fill();
+                // Pupils (follow cursor direction, unless blinking)
+                if (!this.isBlinking) {
+                    const pupilOffset = eyeSize * 0.4;
+                    const pupilSize = this.isScared ? s * 0.02 : s * 0.03; // Smaller when scared
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-s * 0.07 + this.eyeDirection.x * pupilOffset, eyeY + this.eyeDirection.y * pupilOffset, pupilSize, 0, Math.PI * 2);
+                    ctx.arc(s * 0.07 + this.eyeDirection.x * pupilOffset, eyeY + this.eyeDirection.y * pupilOffset, pupilSize, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Closed eyes (blinking)
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.11, eyeY);
+                    ctx.lineTo(-s * 0.03, eyeY);
+                    ctx.moveTo(s * 0.03, eyeY);
+                    ctx.lineTo(s * 0.11, eyeY);
+                    ctx.stroke();
+                }
+
+                // Scared eyebrows
+                if (this.isScared) {
+                    ctx.strokeStyle = this.color.replace('1)', '0.8)');
+                    ctx.lineWidth = 2;
+                    // Left eyebrow (angled up)
+                    ctx.beginPath();
+                    ctx.moveTo(-s * 0.12, eyeY - s * 0.08);
+                    ctx.lineTo(-s * 0.02, eyeY - s * 0.12);
+                    ctx.stroke();
+                    // Right eyebrow (angled up)
+                    ctx.beginPath();
+                    ctx.moveTo(s * 0.02, eyeY - s * 0.12);
+                    ctx.lineTo(s * 0.12, eyeY - s * 0.08);
+                    ctx.stroke();
+                }
 
                 // Antennae
                 ctx.strokeStyle = this.color.replace('1)', '0.7)');
@@ -1179,6 +1303,61 @@
                 const radius = (this.size * this.scale) / 2;
                 const distance = Math.hypot(cursorX - this.x, cursorY - this.y);
                 return distance < radius;
+            }
+
+            drawSpeechBubble(ctx, text, alpha) {
+                ctx.save();
+
+                // Position bubble above the bug
+                const bubbleX = this.x;
+                const bubbleY = this.y - this.size * 0.8;
+
+                // Measure text
+                ctx.font = 'bold 14px Arial, sans-serif';
+                const textWidth = ctx.measureText(text).width;
+                const padding = 10;
+                const bubbleWidth = textWidth + padding * 2;
+                const bubbleHeight = 28;
+
+                // Bubble background
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.roundRect(
+                    bubbleX - bubbleWidth / 2,
+                    bubbleY - bubbleHeight / 2,
+                    bubbleWidth,
+                    bubbleHeight,
+                    8
+                );
+                ctx.fill();
+
+                // Bubble border
+                ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Bubble tail (triangle pointing down)
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.moveTo(bubbleX - 8, bubbleY + bubbleHeight / 2 - 2);
+                ctx.lineTo(bubbleX, bubbleY + bubbleHeight / 2 + 10);
+                ctx.lineTo(bubbleX + 8, bubbleY + bubbleHeight / 2 - 2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.3})`;
+                ctx.beginPath();
+                ctx.moveTo(bubbleX - 8, bubbleY + bubbleHeight / 2 - 1);
+                ctx.lineTo(bubbleX, bubbleY + bubbleHeight / 2 + 10);
+                ctx.lineTo(bubbleX + 8, bubbleY + bubbleHeight / 2 - 1);
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, bubbleX, bubbleY);
+
+                ctx.restore();
             }
         }
 
@@ -2113,9 +2292,9 @@
                     }
                 }
 
-                // Update targets (bugs)
+                // Update targets (bugs) - pass cursor position for eye tracking
                 this.targets = this.targets.filter(target =>
-                    target.update(deltaTime, this.canvas.width, this.canvas.height)
+                    target.update(deltaTime, this.canvas.width, this.canvas.height, this.cursorX, this.cursorY)
                 );
             }
 
