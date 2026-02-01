@@ -971,18 +971,57 @@
         // ============================================
         class CoordinateSmoother {
             constructor(alpha = 0.3) {
+                this.baseAlpha = alpha;
                 this.alpha = alpha;
                 this.x = null;
                 this.y = null;
+                this.canvasWidth = 0;
+                this.canvasHeight = 0;
+            }
+
+            setCanvasSize(width, height) {
+                this.canvasWidth = width;
+                this.canvasHeight = height;
             }
 
             smooth(newX, newY) {
+                // Calculate adaptive alpha based on distance from edges
+                // Corners get stronger smoothing (lower alpha) to reduce jitter
+                let adaptiveAlpha = this.baseAlpha;
+
+                if (this.canvasWidth > 0 && this.canvasHeight > 0) {
+                    const edgeMargin = 150; // Pixels from edge to start increasing smoothing
+
+                    // Calculate distance from each edge (0 = at edge, 1 = past margin)
+                    const distFromLeft = Math.min(newX / edgeMargin, 1);
+                    const distFromRight = Math.min((this.canvasWidth - newX) / edgeMargin, 1);
+                    const distFromTop = Math.min(newY / edgeMargin, 1);
+                    const distFromBottom = Math.min((this.canvasHeight - newY) / edgeMargin, 1);
+
+                    // Find minimum distance to any edge (0 = at edge, 1 = center area)
+                    const minEdgeDist = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom);
+
+                    // Check if in corner (close to 2 edges)
+                    const horizontalDist = Math.min(distFromLeft, distFromRight);
+                    const verticalDist = Math.min(distFromTop, distFromBottom);
+                    const isNearCorner = horizontalDist < 1 && verticalDist < 1;
+
+                    // Apply stronger smoothing near edges, even stronger in corners
+                    // Alpha goes from baseAlpha (center) to baseAlpha * 0.4 (corner)
+                    if (isNearCorner) {
+                        const cornerFactor = Math.min(horizontalDist, verticalDist);
+                        adaptiveAlpha = this.baseAlpha * (0.4 + 0.6 * cornerFactor);
+                    } else {
+                        adaptiveAlpha = this.baseAlpha * (0.6 + 0.4 * minEdgeDist);
+                    }
+                }
+
                 if (this.x === null) {
                     this.x = newX;
                     this.y = newY;
                 } else {
-                    this.x = this.alpha * newX + (1 - this.alpha) * this.x;
-                    this.y = this.alpha * newY + (1 - this.alpha) * this.y;
+                    this.x = adaptiveAlpha * newX + (1 - adaptiveAlpha) * this.x;
+                    this.y = adaptiveAlpha * newY + (1 - adaptiveAlpha) * this.y;
                 }
                 return { x: this.x, y: this.y };
             }
@@ -993,7 +1032,7 @@
             }
 
             setAlpha(alpha) {
-                this.alpha = alpha;
+                this.baseAlpha = alpha;
             }
         }
 
@@ -1536,7 +1575,28 @@
             }
 
             checkHit(cursorX, cursorY) {
-                const radius = (this.size * this.scale) / 2;
+                let radius = (this.size * this.scale) / 2;
+
+                // Add corner tolerance - tracking is harder at screen edges
+                const edgeMargin = 100; // Pixels from edge to consider "corner zone"
+                const cornerBonus = 1.4; // 40% larger hit area in corners
+
+                const nearLeft = this.x < edgeMargin;
+                const nearRight = this.x > this.canvasWidth - edgeMargin;
+                const nearTop = this.y < edgeMargin;
+                const nearBottom = this.y > this.canvasHeight - edgeMargin;
+
+                // Count how many edges the bug is near (0, 1, or 2 for corner)
+                const edgeCount = (nearLeft ? 1 : 0) + (nearRight ? 1 : 0) + (nearTop ? 1 : 0) + (nearBottom ? 1 : 0);
+
+                if (edgeCount >= 2) {
+                    // Corner - largest tolerance
+                    radius *= cornerBonus;
+                } else if (edgeCount === 1) {
+                    // Edge - medium tolerance
+                    radius *= (1 + (cornerBonus - 1) / 2);
+                }
+
                 const distance = Math.hypot(cursorX - this.x, cursorY - this.y);
                 return distance < radius;
             }
@@ -1670,6 +1730,8 @@
             resizeCanvas() {
                 this.canvas.width = window.innerWidth;
                 this.canvas.height = window.innerHeight;
+                // Update smoother with canvas dimensions for adaptive smoothing
+                this.smoother.setCanvasSize(this.canvas.width, this.canvas.height);
             }
 
             setupUI() {
@@ -1860,9 +1922,19 @@
                     // Get index finger tip (landmark 8)
                     const indexTip = landmarks[8];
 
+                    // Edge expansion: map camera range (0.1-0.9) to full screen (0-1)
+                    // This makes corners more reachable since camera edges are hard to reach
+                    const edgePadding = 0.12; // Amount of edge to expand
+                    const expandedX = (indexTip.x - edgePadding) / (1 - edgePadding * 2);
+                    const expandedY = (indexTip.y - edgePadding) / (1 - edgePadding * 2);
+
+                    // Clamp to valid range
+                    const clampedX = Math.max(0, Math.min(1, expandedX));
+                    const clampedY = Math.max(0, Math.min(1, expandedY));
+
                     // Convert to canvas coordinates (with horizontal flip for mirror mode)
-                    const rawX = (1 - indexTip.x) * this.canvas.width;
-                    const rawY = indexTip.y * this.canvas.height;
+                    const rawX = (1 - clampedX) * this.canvas.width;
+                    const rawY = clampedY * this.canvas.height;
 
                     // Smooth coordinates
                     const smoothed = this.smoother.smooth(rawX, rawY);
@@ -1920,9 +1992,16 @@
                 const testCursor = document.getElementById('testCursor');
                 const rect = testArea.getBoundingClientRect();
 
+                // Apply same edge expansion as game for consistent experience
+                const edgePadding = 0.12;
+                const expandedX = (normX - edgePadding) / (1 - edgePadding * 2);
+                const expandedY = (normY - edgePadding) / (1 - edgePadding * 2);
+                const clampedX = Math.max(0, Math.min(1, expandedX));
+                const clampedY = Math.max(0, Math.min(1, expandedY));
+
                 // Apply same mirroring as game
-                const x = (1 - normX) * rect.width;
-                const y = normY * rect.height;
+                const x = (1 - clampedX) * rect.width;
+                const y = clampedY * rect.height;
 
                 testCursor.style.display = 'block';
                 testCursor.style.left = `${x}px`;
