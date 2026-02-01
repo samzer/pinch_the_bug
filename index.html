@@ -86,7 +86,7 @@
         }
 
         #score .stat-value {
-            color: #4ade80;
+            color: #5fd35f;
         }
 
         #handStatus {
@@ -347,12 +347,12 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.75);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 100;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(4px);
         }
 
         .modal.hidden {
@@ -364,77 +364,152 @@
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
-            padding: 40px;
-            border-radius: 20px;
-            max-width: 500px;
+            background: linear-gradient(180deg, #3d3d3d 0%, #2a2a2a 100%);
+            padding: 0;
+            border-radius: 16px;
+            max-width: 480px;
             width: 90%;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 4px solid #5a4a3a;
+            box-shadow:
+                0 0 0 2px #2a2a2a,
+                0 0 0 6px #4a3a2a,
+                0 10px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            color: #f0f0f0;
+            overflow: hidden;
         }
 
         .modal-content h2 {
-            font-size: 32px;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #4ade80, #22d3ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 26px;
+            margin: 0;
+            padding: 16px 20px;
+            color: #ffffff;
+            font-family: 'Arial Black', 'Helvetica Bold', sans-serif;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            letter-spacing: 0.5px;
+            position: relative;
+            background: linear-gradient(180deg, #4a7c4a 0%, #3a6a3a 100%);
+            border-bottom: 3px solid #2d5a2d;
+        }
+
+        /* Modal body content area */
+        .modal-body {
+            padding: 25px 30px 30px;
         }
 
         .modal-content p {
             margin-bottom: 15px;
-            line-height: 1.6;
-            opacity: 0.9;
+            line-height: 1.7;
+            color: #cccccc;
+            font-size: 16px;
+            padding: 0;
         }
 
         .instructions-list {
             text-align: left;
-            margin: 20px 0;
-            padding-left: 20px;
+            margin: 10px 0 20px;
+            list-style: none;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px 20px 20px 50px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .instructions-list li {
-            margin-bottom: 10px;
-            line-height: 1.5;
+            margin-bottom: 12px;
+            line-height: 1.6;
+            color: #cccccc;
+            position: relative;
+            padding-left: 10px;
+        }
+
+        .instructions-list li:last-child {
+            margin-bottom: 0;
+        }
+
+        .instructions-list li::before {
+            content: '🪰';
+            position: absolute;
+            left: -30px;
+            font-size: 16px;
+        }
+
+        .instructions-list li strong {
+            color: #7ddf7d;
         }
 
         .btn {
-            padding: 15px 40px;
-            font-size: 18px;
+            padding: 14px 36px;
+            font-size: 16px;
             border: none;
-            border-radius: 30px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 10px;
+            transition: all 0.2s ease;
+            margin: 8px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
+            position: relative;
+        }
+
+        .modal-content .btn {
+            margin-top: 15px;
         }
 
         .btn-primary {
-            background: linear-gradient(90deg, #4ade80, #22d3ee);
-            color: #1a1a2e;
+            background: linear-gradient(180deg, #2d8a2d 0%, #1e6b1e 100%);
+            color: #ffffff;
+            border: 2px solid #1a5a1a;
+            box-shadow:
+                0 4px 0 #145214,
+                0 6px 8px rgba(0, 0, 0, 0.25);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
 
         .btn-primary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(74, 222, 128, 0.4);
+            transform: translateY(-2px);
+            box-shadow:
+                0 6px 0 #145214,
+                0 8px 12px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(180deg, #3a9d3a 0%, #2d8a2d 100%);
+        }
+
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow:
+                0 2px 0 #145214,
+                0 3px 4px rgba(0, 0, 0, 0.2);
         }
 
         .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 100%);
+            color: #cccccc;
+            border: 2px solid #5a5a5a;
+            box-shadow:
+                0 3px 0 #2a2a2a,
+                0 5px 8px rgba(0, 0, 0, 0.2);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 100%);
+            transform: translateY(-1px);
+            box-shadow:
+                0 4px 0 #2a2a2a,
+                0 6px 10px rgba(0, 0, 0, 0.25);
+            color: #ffffff;
+        }
+
+        .btn-secondary:active {
+            transform: translateY(2px);
+            box-shadow:
+                0 1px 0 #2a2a2a,
+                0 2px 3px rgba(0, 0, 0, 0.2);
         }
 
         .calibration-area {
-            margin: 30px 0;
+            margin: 10px 0;
         }
 
         .slider-container {
@@ -468,70 +543,82 @@
         .test-area {
             width: 100%;
             height: 150px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            margin: 20px 0;
+            background: linear-gradient(180deg, #2d6a4f 0%, #1b4332 100%);
+            border-radius: 10px;
+            margin: 15px 0;
             position: relative;
             overflow: hidden;
-            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border: 3px solid #081c15;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .test-area p {
+            color: rgba(255, 255, 255, 0.5) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            font-size: 14px !important;
+            padding: 0 !important;
+            margin: 0 !important;
         }
 
         .test-cursor {
             width: 30px;
             height: 30px;
-            background: radial-gradient(circle, #4ade80, #22d3ee);
+            background: radial-gradient(circle, #ff6b6b, #c53030);
             border-radius: 50%;
             position: absolute;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.6), 0 2px 4px rgba(0, 0, 0, 0.3);
             display: none;
+            border: 2px solid #fff;
         }
 
         .final-score {
             font-size: 64px;
             font-weight: bold;
-            background: linear-gradient(90deg, #4ade80, #22d3ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin: 20px 0;
+            color: #7ddf7d;
+            margin: 10px 0 20px;
+            text-shadow: 0 2px 10px rgba(125, 223, 125, 0.4);
+            font-family: 'Arial Black', sans-serif;
         }
 
         .name-input {
             width: 100%;
             padding: 15px 20px;
             font-size: 18px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
+            border: 2px solid #5a5a5a;
+            border-radius: 10px;
             background: rgba(0, 0, 0, 0.3);
-            color: white;
-            margin: 20px 0;
+            color: #ffffff;
+            margin: 15px 0;
             text-align: center;
             outline: none;
-            transition: border-color 0.3s ease;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
         }
 
         .name-input:focus {
-            border-color: #4ade80;
+            border-color: #7ddf7d;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(125, 223, 125, 0.2);
         }
 
         .name-input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
+            color: #888888;
         }
 
         .name-error {
-            color: #ef4444;
+            color: #ff6b6b;
             font-size: 14px;
-            margin: -10px 0 15px 0;
-            padding: 8px 12px;
-            background: rgba(239, 68, 68, 0.1);
+            margin: -5px 0 15px;
+            padding: 10px 15px;
+            background: rgba(255, 107, 107, 0.15);
             border-radius: 8px;
-            border: 1px solid rgba(239, 68, 68, 0.3);
+            border: 1px solid rgba(255, 107, 107, 0.3);
         }
 
         .name-input.error {
-            border-color: #ef4444;
+            border-color: #ff6b6b;
         }
 
         .leaderboard-item {
@@ -542,33 +629,35 @@
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .leaderboard-item.current-player {
-            background: rgba(74, 222, 128, 0.2);
-            border: 1px solid #4ade80;
+            background: rgba(125, 223, 125, 0.15);
+            border: 2px solid #7ddf7d;
         }
 
         .leaderboard-rank {
             font-weight: bold;
-            color: #4ade80;
+            color: #7ddf7d;
             min-width: 30px;
         }
 
         .leaderboard-name {
             flex: 1;
+            color: #cccccc;
             margin-left: 10px;
         }
 
         .leaderboard-score {
             font-weight: bold;
-            color: #22d3ee;
+            color: #7ddf7d;
         }
 
         .loading-spinner {
             text-align: center;
             padding: 20px;
-            color: rgba(255, 255, 255, 0.7);
+            color: #888888;
         }
 
         .pagination {
@@ -584,17 +673,19 @@
         .btn-pagination {
             padding: 8px 16px;
             font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid #5a5a5a;
             border-radius: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
+            background: linear-gradient(180deg, #4a4a4a 0%, #3a3a3a 100%);
+            color: #cccccc;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            font-weight: bold;
         }
 
         .btn-pagination:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: #4ade80;
+            background: linear-gradient(180deg, #5a5a5a 0%, #4a4a4a 100%);
+            border-color: #7ddf7d;
+            color: #ffffff;
         }
 
         .btn-pagination:disabled {
@@ -604,25 +695,28 @@
 
         .pagination-info {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
+            color: #888888;
             min-width: 80px;
             text-align: center;
+            font-weight: bold;
         }
 
         .your-score-box {
-            background: linear-gradient(135deg, rgba(74, 222, 128, 0.2) 0%, rgba(34, 211, 238, 0.2) 100%);
-            border: 2px solid #4ade80;
-            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(125, 223, 125, 0.15) 0%, rgba(125, 223, 125, 0.05) 100%);
+            border: 2px solid #7ddf7d;
+            border-radius: 10px;
             padding: 15px 20px;
-            margin-bottom: 20px;
+            margin: 0 0 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .your-score-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            opacity: 0.8;
+            color: #7ddf7d;
             margin-bottom: 8px;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            font-weight: bold;
         }
 
         .your-score-details {
@@ -635,7 +729,7 @@
         .your-rank {
             font-size: 24px;
             font-weight: bold;
-            color: #4ade80;
+            color: #7ddf7d;
             min-width: 50px;
         }
 
@@ -643,27 +737,32 @@
             flex: 1;
             font-size: 18px;
             font-weight: 500;
+            color: #ffffff;
         }
 
         .your-score {
             font-size: 28px;
             font-weight: bold;
-            color: #22d3ee;
+            color: #7ddf7d;
         }
 
         .high-scores {
-            margin: 20px 0;
+            margin: 0 0 20px;
             text-align: left;
         }
 
         .high-scores h3 {
             margin-bottom: 15px;
             text-align: center;
+            color: #cccccc;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #leaderboardList,
         #menuLeaderboardList {
-            max-height: 350px;
+            max-height: 300px;
             overflow-y: auto;
         }
 
@@ -674,7 +773,7 @@
 
         #leaderboardList::-webkit-scrollbar-track,
         #menuLeaderboardList::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
         }
 
@@ -696,14 +795,27 @@
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
             margin-bottom: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cccccc;
         }
 
         .error-message {
-            background: rgba(239, 68, 68, 0.2);
-            border: 1px solid #ef4444;
+            background: rgba(255, 107, 107, 0.15);
+            border: 2px solid #ff6b6b;
             padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
+            border-radius: 10px;
+            margin: 15px 0;
+            color: #ffaaaa;
+        }
+
+        .error-message strong {
+            color: #ff6b6b;
+        }
+
+        .error-message p {
+            color: #ffaaaa !important;
+            padding: 0 !important;
+            margin-top: 10px !important;
         }
 
         @keyframes pulse {
@@ -769,128 +881,143 @@
         <!-- Start/Calibration Modal -->
         <div class="modal" id="startModal">
             <div class="modal-content">
-                <h2>Pinch the Bug</h2>
-                <p>Use your fly swatter to squash the bugs!</p>
+                <h2>🪲 Pinch the Bug</h2>
+                <div class="modal-body">
+                    <p style="padding: 0; margin-bottom: 5px;">Use your fly swatter to squash the bugs!</p>
 
-                <div class="calibration-area">
-                    <div class="test-area" id="testArea">
-                        <div class="test-cursor" id="testCursor"></div>
-                        <p style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.5;">
-                            Move your finger here to test
-                        </p>
+                    <div class="calibration-area">
+                        <div class="test-area" id="testArea">
+                            <div class="test-cursor" id="testCursor"></div>
+                            <p style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                                Move your finger here to test
+                            </p>
+                        </div>
                     </div>
-                </div>
 
-                <div id="cameraError" class="error-message hidden">
-                    <strong>Camera Error</strong>
-                    <p id="errorText"></p>
-                </div>
+                    <div id="cameraError" class="error-message hidden">
+                        <strong>Camera Error</strong>
+                        <p id="errorText"></p>
+                    </div>
 
-                <button class="btn btn-primary" id="startBtn" disabled>Start Game</button>
-                <button class="btn btn-secondary" id="viewLeaderboardBtn">View Leaderboard</button>
+                    <button class="btn btn-primary" id="startBtn" disabled>Start Game</button>
+                    <button class="btn btn-secondary" id="viewLeaderboardBtn">View Leaderboard</button>
+                </div>
             </div>
         </div>
 
         <!-- Leaderboard Modal (from menu) -->
         <div class="modal hidden" id="leaderboardModal">
             <div class="modal-content">
-                <h2>Leaderboard</h2>
-                <div class="high-scores">
-                    <h3>All Players</h3>
-                    <div id="menuLeaderboardList"></div>
-                    <div class="pagination hidden" id="menuPagination">
-                        <button class="btn-pagination" id="menuPrevBtn" disabled>&laquo; Prev</button>
-                        <span class="pagination-info" id="menuPageInfo">Page 1</span>
-                        <button class="btn-pagination" id="menuNextBtn">Next &raquo;</button>
+                <h2>🏆 Leaderboard</h2>
+                <div class="modal-body">
+                    <div class="high-scores">
+                        <h3>All Players</h3>
+                        <div id="menuLeaderboardList"></div>
+                        <div class="pagination hidden" id="menuPagination">
+                            <button class="btn-pagination" id="menuPrevBtn" disabled>&laquo; Prev</button>
+                            <span class="pagination-info" id="menuPageInfo">Page 1</span>
+                            <button class="btn-pagination" id="menuNextBtn">Next &raquo;</button>
+                        </div>
                     </div>
+                    <button class="btn btn-primary" id="closeLeaderboardBtn">Back</button>
                 </div>
-                <button class="btn btn-primary" id="closeLeaderboardBtn">Back</button>
             </div>
         </div>
 
         <!-- Instructions Modal -->
         <div class="modal hidden" id="instructionsModal">
             <div class="modal-content">
-                <h2>How to Play</h2>
-                <ul class="instructions-list">
-                    <li><strong>Point</strong> your index finger to control the fly swatter</li>
-                    <li><strong>Hover</strong> over a bug to charge up the swatter</li>
-                    <li><strong>Hold</strong> on the bug until the swatter squashes it!</li>
-                    <li>Squash as many bugs as you can before time runs out!</li>
-                </ul>
-                <button class="btn btn-primary" id="playBtn">Play!</button>
+                <h2>📋 How to Play</h2>
+                <div class="modal-body">
+                    <ul class="instructions-list">
+                        <li><strong>Point</strong> your index finger to control the fly swatter</li>
+                        <li><strong>Hover</strong> over a bug to charge up the swatter</li>
+                        <li><strong>Hold</strong> on the bug until the swatter squashes it!</li>
+                        <li>Squash as many bugs as you can before time runs out!</li>
+                    </ul>
+                    <button class="btn btn-primary" id="playBtn">Play!</button>
+                </div>
             </div>
         </div>
 
         <!-- Name Input Modal -->
         <div class="modal hidden" id="nameModal">
             <div class="modal-content">
-                <h2>New High Score!</h2>
-                <div class="final-score" id="finalScoreDisplay">0</div>
-                <p>Enter your name for the leaderboard:</p>
-                <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
-                <p id="nameError" class="name-error hidden"></p>
-                <button class="btn btn-primary" id="submitScoreBtn">Submit Score</button>
-                <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
+                <h2>🎉 New High Score!</h2>
+                <div class="modal-body">
+                    <div class="final-score" id="finalScoreDisplay">0</div>
+                    <p style="padding: 0;">Enter your name for the leaderboard:</p>
+                    <input type="text" id="playerNameInput" class="name-input" placeholder="Your name" maxlength="20" autocomplete="off">
+                    <p id="nameError" class="name-error hidden"></p>
+                    <button class="btn btn-primary" id="submitScoreBtn">Submit Score</button>
+                    <button class="btn btn-secondary" id="skipScoreBtn">Skip</button>
+                </div>
             </div>
         </div>
 
         <!-- Not Higher Score Modal -->
         <div class="modal hidden" id="notHigherModal">
             <div class="modal-content">
-                <h2>Game Over!</h2>
-                <div class="final-score" id="notHigherScore">0</div>
-                <p style="margin-bottom: 10px;">Your high score: <strong id="existingHighScore">0</strong></p>
-                <p style="opacity: 0.7;">Beat your high score to update the leaderboard!</p>
-                <button class="btn btn-primary" id="tryAgainBtn">Try Again</button>
-                <button class="btn btn-secondary" id="viewLeaderboardBtn2">View Leaderboard</button>
+                <h2>💀 Game Over!</h2>
+                <div class="modal-body">
+                    <div class="final-score" id="notHigherScore">0</div>
+                    <p style="padding: 0; margin-bottom: 10px;">Your high score: <strong style="color: #7ddf7d;" id="existingHighScore">0</strong></p>
+                    <p style="padding: 0; opacity: 0.7;">Beat your high score to update the leaderboard!</p>
+                    <button class="btn btn-primary" id="tryAgainBtn">Try Again</button>
+                    <button class="btn btn-secondary" id="viewLeaderboardBtn2">View Leaderboard</button>
+                </div>
             </div>
         </div>
 
         <!-- Game Over Modal -->
         <div class="modal hidden" id="gameOverModal">
             <div class="modal-content">
-                <h2>Leaderboard</h2>
-
-                <div class="your-score-box" id="yourScoreBox">
-                    <div class="your-score-label">Your Score</div>
-                    <div class="your-score-details">
-                        <span class="your-rank" id="yourRank">#1</span>
-                        <span class="your-name" id="yourName">Player</span>
-                        <span class="your-score" id="yourScore">0</span>
+                <h2>🏆 Leaderboard</h2>
+                <div class="modal-body">
+                    <div class="your-score-box" id="yourScoreBox">
+                        <div class="your-score-label">Your Score</div>
+                        <div class="your-score-details">
+                            <span class="your-rank" id="yourRank">#1</span>
+                            <span class="your-name" id="yourName">Player</span>
+                            <span class="your-score" id="yourScore">0</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="high-scores">
-                    <h3>All Players</h3>
-                    <div id="leaderboardList"></div>
-                    <div class="pagination hidden" id="gameOverPagination">
-                        <button class="btn-pagination" id="gameOverPrevBtn" disabled>&laquo; Prev</button>
-                        <span class="pagination-info" id="gameOverPageInfo">Page 1</span>
-                        <button class="btn-pagination" id="gameOverNextBtn">Next &raquo;</button>
+                    <div class="high-scores">
+                        <h3>All Players</h3>
+                        <div id="leaderboardList"></div>
+                        <div class="pagination hidden" id="gameOverPagination">
+                            <button class="btn-pagination" id="gameOverPrevBtn" disabled>&laquo; Prev</button>
+                            <span class="pagination-info" id="gameOverPageInfo">Page 1</span>
+                            <button class="btn-pagination" id="gameOverNextBtn">Next &raquo;</button>
+                        </div>
                     </div>
-                </div>
 
-                <button class="btn btn-primary" id="restartBtn">Play Again</button>
-                <button class="btn btn-secondary" id="menuBtn">Main Menu</button>
+                    <button class="btn btn-primary" id="restartBtn">Play Again</button>
+                    <button class="btn btn-secondary" id="menuBtn">Main Menu</button>
+                </div>
             </div>
         </div>
 
         <!-- Paused Overlay -->
         <div class="modal hidden" id="pausedModal">
             <div class="modal-content">
-                <h2>Paused</h2>
-                <p>Hand not detected. Show your hand to continue!</p>
+                <h2>⏸️ Paused</h2>
+                <div class="modal-body">
+                    <p style="padding: 0; margin: 0;">Hand not detected. Show your hand to continue!</p>
+                </div>
             </div>
         </div>
 
         <!-- Mobile Not Supported Modal -->
         <div class="modal hidden" id="mobileModal">
             <div class="modal-content">
-                <h2>Desktop Only</h2>
-                <div style="font-size: 64px; margin: 20px 0;">🖥️</div>
-                <p style="margin-bottom: 15px;">Pinch the Bug requires a webcam and hand tracking, which works best on desktop computers.</p>
-                <p style="opacity: 0.7;">Please visit this page on a desktop or laptop computer with a webcam to play!</p>
+                <h2>🖥️ Desktop Only</h2>
+                <div class="modal-body">
+                    <div style="font-size: 64px; margin: 10px 0 20px;">🖥️</div>
+                    <p style="padding: 0;">Pinch the Bug requires a webcam and hand tracking, which works best on desktop computers.</p>
+                    <p style="padding: 0; opacity: 0.7;">Please visit this page on a desktop or laptop computer with a webcam to play!</p>
+                </div>
             </div>
         </div>
     </div>
