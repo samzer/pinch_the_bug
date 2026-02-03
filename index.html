@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pinch the Bug</title>
+    <title>Shoot the Bug</title>
     <style>
         * {
             margin: 0;
@@ -874,14 +874,14 @@
             <div class="timer-label">TIME</div>
         </div>
 
-        <a href="https://www.samirmadhavan.com?utm_source=pinch_the_bug&utm_medium=game&utm_campaign=bug_game" target="_blank" id="siteLink">samirmadhavan.com</a>
+        <a href="https://www.samirmadhavan.com?utm_source=shoot_the_bug&utm_medium=game&utm_campaign=bug_game" target="_blank" id="siteLink">samirmadhavan.com</a>
 
         <div id="handStatus">Waiting for camera...</div>
 
         <!-- Start/Calibration Modal -->
         <div class="modal" id="startModal">
             <div class="modal-content">
-                <h2>🪲 Pinch the Bug</h2>
+                <h2>🪲 Shoot the Bug</h2>
                 <div class="modal-body">
                     <p style="padding: 0; margin-bottom: 5px;">Use your fly swatter to squash the bugs!</p>
 
@@ -1015,7 +1015,7 @@
                 <h2>🖥️ Desktop Only</h2>
                 <div class="modal-body">
                     <div style="font-size: 64px; margin: 10px 0 20px;">🖥️</div>
-                    <p style="padding: 0;">Pinch the Bug requires a webcam and hand tracking, which works best on desktop computers.</p>
+                    <p style="padding: 0;">Shoot the Bug requires a webcam and hand tracking, which works best on desktop computers.</p>
                     <p style="padding: 0; opacity: 0.7;">Please visit this page on a desktop or laptop computer with a webcam to play!</p>
                 </div>
             </div>
@@ -2191,7 +2191,7 @@
                 this.finalScore = this.score;
 
                 // Check if returning player has a higher existing score
-                const rememberedName = localStorage.getItem('pinchTheBugPlayerName') || '';
+                const rememberedName = localStorage.getItem('shootTheBugPlayerName') || '';
 
                 if (rememberedName && supabaseClient) {
                     try {
@@ -2272,7 +2272,7 @@
                 }
 
                 // Remember the player name
-                localStorage.setItem('pinchTheBugPlayerName', playerName);
+                localStorage.setItem('shootTheBugPlayerName', playerName);
 
                 // Check if Supabase is available
                 if (!supabaseClient) {
@@ -2399,7 +2399,7 @@
 
                     // Find current player's rank
                     let playerRank = '-';
-                    const playerName = this.currentPlayerName || localStorage.getItem('pinchTheBugPlayerName') || 'You';
+                    const playerName = this.currentPlayerName || localStorage.getItem('shootTheBugPlayerName') || 'You';
 
                     if (this.currentPlayerName) {
                         const playerIndex = data.findIndex(entry =>

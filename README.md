@@ -1,4 +1,4 @@
-# Pinch the Bug
+# Shoot the Bug
 
 A browser-based game that uses your webcam to track your hand movements. Point at bugs crawling across the screen and hold your finger on them to squash them!
 
